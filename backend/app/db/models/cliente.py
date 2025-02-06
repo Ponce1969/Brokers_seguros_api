@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime, timezone
-from ..db.base_class import Base
+from ..base_class import Base
 
 def get_utc_now():
     """Función helper para obtener el tiempo UTC actual"""
