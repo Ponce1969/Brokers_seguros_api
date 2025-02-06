@@ -4,14 +4,14 @@ from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
-# Crear el motor de base de datos asíncrono
+# Crear el motor de base de datos asincrono.
 engine = create_async_engine(
     settings.SQLALCHEMY_DATABASE_URI,
     echo=settings.DB_ECHO_LOG,
     poolclass=NullPool,
 )
 
-# Crear el fabricante de sesiones asíncronas
+# Crear el fabricante de sesiones asincronas.
 AsyncSessionLocal = sessionmaker(
     engine,
     class_=AsyncSession,

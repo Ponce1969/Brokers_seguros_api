@@ -18,9 +18,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Importar y incluir routers aquí cuando estén listos
-# from app.api.api_v1.api import api_router
-# app.include_router(api_router, prefix=settings.API_V1_STR)
+# Importar y configurar los routers
+from app.api.v1.api import api_router
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 async def root():
