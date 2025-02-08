@@ -1,24 +1,13 @@
-from logging.config import fileConfig
 import os
-from dotenv import load_dotenv
+from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.db.base import Base
-from app.core.config import settings
 
 # Import all models for Alembic autogenerate support
-from app.db.models.aseguradora import Aseguradora
-from app.db.models.cliente import Cliente
-from app.db.models.cliente_corredor import ClienteCorredor
-from app.db.models.corredor import Corredor
-from app.db.models.moneda import Moneda
-from app.db.models.movimiento_vigencia import MovimientoVigencia
-from app.db.models.tipo_documento import TipoDocumento
-from app.db.models.tipo_seguro import TipoSeguro
-from app.db.models.usuario import Usuario
 
 # Load environment variables
 load_dotenv()
@@ -37,7 +26,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Set the SQLAlchemy URL from environment variable
-config.set_main_option('sqlalchemy.url', os.environ.get('DATABASE_URL'))
+config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -84,15 +73,13 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
 
 
 # Usamos localhost en lugar de postgres cuando ejecutamos fuera del contenedor
-db_url = os.environ.get('DATABASE_URL', '').replace('@postgres:', '@localhost:')
-config.set_main_option('sqlalchemy.url', db_url)
+db_url = os.environ.get("DATABASE_URL", "").replace("@postgres:", "@localhost:")
+config.set_main_option("sqlalchemy.url", db_url)
 run_migrations_online()
