@@ -1,10 +1,20 @@
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Column,
+    Date,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
 from ..base_class import Base
+
 
 class MovimientoVigencia(Base):
     """Modelo para la tabla movimientos_vigencias."""
+
     __tablename__ = "movimientos_vigencias"
 
     id = Column(Integer, primary_key=True, index=True)

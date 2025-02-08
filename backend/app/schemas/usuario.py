@@ -1,6 +1,8 @@
-from typing import Optional
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class UsuarioBase(BaseModel):
     nombre: str
@@ -14,11 +16,14 @@ class UsuarioBase(BaseModel):
     telefono: Optional[str] = None
     corredor_numero: Optional[int] = None
 
+
 class UsuarioCreate(UsuarioBase):
     password: str
 
+
 class UsuarioUpdate(UsuarioBase):
     password: Optional[str] = None
+
 
 class Usuario(UsuarioBase):
     id: int
@@ -27,6 +32,7 @@ class Usuario(UsuarioBase):
 
     class Config:
         from_attributes = True
+
 
 class UsuarioInDB(Usuario):
     hashed_password: str

@@ -1,14 +1,19 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-from ..base_class import Base
 from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from ..base_class import Base
+
 
 def get_utc_now():
     """Función helper para obtener el tiempo UTC actual"""
     return datetime.now(timezone.utc)
 
+
 class Usuario(Base):
     """Modelo para la tabla usuarios."""
+
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -22,20 +27,26 @@ class Usuario(Base):
     role = Column(String(20), default="user")  # Roles: "corredor", "admin", etc.
     comision_porcentaje = Column(Float, default=0.0)  # Solo aplicable a corredores
     telefono = Column(String(20))  # Teléfono de contacto
-    corredor_numero = Column(Integer, ForeignKey("corredores.numero"), nullable=True)  # Relación con corredor
+    corredor_numero = Column(
+        Integer, ForeignKey("corredores.numero"), nullable=True
+    )  # Relación con corredor
 
     fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
-    fecha_modificacion = Column(DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now)
+    fecha_modificacion = Column(
+        DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now
+    )
 
     # Relaciones
-    corredor_rel = relationship("Corredor", back_populates="usuarios")  # Relación con la tabla Corredor
+    corredor_rel = relationship(
+        "Corredor", back_populates="usuarios"
+    )  # Relación con la tabla Corredor
     clientes_creados = relationship(
-        "Cliente", 
-        back_populates="creado_por_usuario", 
-        foreign_keys="Cliente.creado_por_id"
+        "Cliente",
+        back_populates="creado_por_usuario",
+        foreign_keys="Cliente.creado_por_id",
     )
     clientes_modificados = relationship(
-        "Cliente", 
+        "Cliente",
         back_populates="modificado_por_usuario",
-        foreign_keys="Cliente.modificado_por_id"
+        foreign_keys="Cliente.modificado_por_id",
     )

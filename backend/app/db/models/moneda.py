@@ -1,9 +1,12 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from ..base_class import Base
+
 
 class Moneda(Base):
     """Modelo para la tabla monedas."""
+
     __tablename__ = "monedas"
 
     id = Column(Integer, primary_key=True, index=True)

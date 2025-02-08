@@ -1,6 +1,8 @@
-from typing import Optional
-from pydantic import BaseModel, EmailStr
 from datetime import date
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class CorredorBase(BaseModel):
     nombres: Optional[str] = None
@@ -15,11 +17,14 @@ class CorredorBase(BaseModel):
     matricula: Optional[str] = None
     especializacion: Optional[str] = None
 
+
 class CorredorCreate(CorredorBase):
     fecha_alta: date
 
+
 class CorredorUpdate(CorredorBase):
     fecha_baja: Optional[date] = None
+
 
 class Corredor(CorredorBase):
     numero: int

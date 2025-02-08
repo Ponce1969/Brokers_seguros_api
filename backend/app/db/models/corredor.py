@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, Date
+from sqlalchemy import Column, Date, Integer, String, Text
 from sqlalchemy.orm import relationship
+
 from ..base_class import Base
+
 
 class Corredor(Base):
     __tablename__ = "corredores"
