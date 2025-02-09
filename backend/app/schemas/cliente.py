@@ -1,6 +1,13 @@
+from __future__ import annotations
 from datetime import date, datetime
-from typing import List, Optional
-from pydantic import BaseModel, EmailStr, UUID4, Field, field_validator
+from typing import List, Optional, TYPE_CHECKING
+from pydantic import BaseModel, EmailStr, UUID4, Field, field_validator, conint
+
+if TYPE_CHECKING:
+    from .tipo_documento import TipoDocumento
+    from .corredor import Corredor
+    from .movimiento_vigencia import MovimientoVigencia
+    from .usuario import Usuario
 
 
 class ClienteBase(BaseModel):
@@ -16,7 +23,7 @@ class ClienteBase(BaseModel):
         max_length=100,
         description="Apellidos del cliente"
     )
-    tipo_documento_id: int = Field(
+    tipo_documento_id: conint(ge=1) = Field(
         ...,
         description="ID del tipo de documento"
     )
@@ -64,8 +71,12 @@ class ClienteBase(BaseModel):
 
     @field_validator('nombres', 'apellidos', 'numero_documento', 'direccion', 'localidad', 'telefonos', 'movil')
     def strip_whitespace(cls, v):
-        if isinstance(v, str):
-            return v.strip()
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("fecha_nacimiento")
+    def validate_fecha_nacimiento(cls, v):
+        if v > date.today():
+            raise ValueError("La fecha de nacimiento no puede ser en el futuro")
         return v
 
     class Config:
@@ -73,29 +84,29 @@ class ClienteBase(BaseModel):
 
 
 class ClienteCreate(ClienteBase):
-    creado_por_id: int = Field(
+    creado_por_id: conint(ge=1) = Field(
         ...,
         description="ID del usuario que crea el registro"
     )
-    modificado_por_id: int = Field(
+    modificado_por_id: conint(ge=1) = Field(
         ...,
         description="ID del usuario que modifica el registro"
     )
 
 
 class ClienteUpdate(ClienteBase):
-    nombres: Optional[str] = Field(None, min_length=2, max_length=100)
-    apellidos: Optional[str] = Field(None, min_length=2, max_length=100)
-    tipo_documento_id: Optional[int] = None
-    numero_documento: Optional[str] = Field(None, min_length=5, max_length=20)
+    nombres: Optional[str] = None
+    apellidos: Optional[str] = None
+    tipo_documento_id: Optional[conint(ge=1)] = None
+    numero_documento: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
-    direccion: Optional[str] = Field(None, min_length=5, max_length=200)
-    localidad: Optional[str] = Field(None, max_length=100)
-    telefonos: Optional[str] = Field(None, min_length=8, max_length=50)
-    movil: Optional[str] = Field(None, min_length=8, max_length=50)
+    direccion: Optional[str] = None
+    localidad: Optional[str] = None
+    telefonos: Optional[str] = None
+    movil: Optional[str] = None
     mail: Optional[EmailStr] = None
     observaciones: Optional[str] = None
-    modificado_por_id: int = Field(
+    modificado_por_id: conint(ge=1) = Field(
         ...,
         description="ID del usuario que modifica el registro"
     )
@@ -103,19 +114,19 @@ class ClienteUpdate(ClienteBase):
 
 class Cliente(ClienteBase):
     id: UUID4
-    numero_cliente: int = Field(
+    numero_cliente: conint(ge=1) = Field(
         ...,
         description="Número único de cliente"
     )
-    creado_por_id: int
-    modificado_por_id: int
+    creado_por_id: conint(ge=1)
+    modificado_por_id: conint(ge=1)
     fecha_creacion: datetime
     fecha_modificacion: datetime
-    corredores_count: Optional[int] = Field(
+    corredores_count: Optional[conint(ge=0)] = Field(
         0,
         description="Cantidad de corredores asignados"
     )
-    polizas_count: Optional[int] = Field(
+    polizas_count: Optional[conint(ge=0)] = Field(
         0,
         description="Cantidad de pólizas activas"
     )
@@ -125,15 +136,11 @@ class Cliente(ClienteBase):
 
 
 class ClienteWithRelations(Cliente):
-    tipo_documento: Optional["TipoDocumento"] = None
-    corredores: List["Corredor"] = Field(default_factory=list)
-    movimientos: List["MovimientoVigencia"] = Field(default_factory=list)
-    creado_por: Optional["Usuario"] = None
-    modificado_por: Optional["Usuario"] = None
+    tipo_documento: Optional["TipoDocumento"] = Field(None, description="Tipo de documento del cliente")
+    corredores: List["Corredor"] = Field(default_factory=list, description="Lista de corredores asignados")
+    movimientos: List["MovimientoVigencia"] = Field(default_factory=list, description="Lista de movimientos")
+    creado_por: Optional["Usuario"] = Field(None, description="Usuario que creó el registro")
+    modificado_por: Optional["Usuario"] = Field(None, description="Usuario que modificó el registro")
 
-
-# Las referencias a otros modelos se definen como strings para evitar importaciones circulares
-TipoDocumento = "TipoDocumento"
-Corredor = "Corredor"
-MovimientoVigencia = "MovimientoVigencia"
-Usuario = "Usuario"
+    class Config:
+        from_attributes = True

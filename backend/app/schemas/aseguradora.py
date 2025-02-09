@@ -1,6 +1,11 @@
+from __future__ import annotations
 from datetime import datetime
-from typing import List, Optional, Any
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+from typing import List, Optional, TYPE_CHECKING
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, conint
+
+if TYPE_CHECKING:
+    from .tipo_seguro import TipoSeguro
+    from .movimiento_vigencia import MovimientoVigencia
 
 
 def to_lower(s: str) -> str:
@@ -53,9 +58,7 @@ class AseguradoraBase(BaseModel):
 
     @field_validator('nombre', 'rut', 'telefono', 'direccion')
     def strip_whitespace(cls, v):
-        if isinstance(v, str):
-            return v.strip()
-        return v
+        return v.strip() if isinstance(v, str) else v
 
     class Config:
         from_attributes = True
@@ -68,11 +71,10 @@ class AseguradoraCreate(AseguradoraBase):
 
 class AseguradoraUpdate(AseguradoraBase):
     """Modelo para actualizar los datos de una aseguradora existente."""
-
-    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
-    rut: Optional[str] = Field(None, min_length=8, max_length=12)
-    telefono: Optional[str] = Field(None, min_length=8, max_length=20)
-    direccion: Optional[str] = Field(None, max_length=200)
+    nombre: Optional[str] = None
+    rut: Optional[str] = None
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
     email: Optional[EmailStr] = None
     pagina_web: Optional[HttpUrl] = None
     esta_activa: Optional[bool] = None
@@ -82,7 +84,7 @@ class AseguradoraUpdate(AseguradoraBase):
 class Aseguradora(AseguradoraBase):
     """Modelo completo de aseguradora con campos adicionales."""
 
-    id: int
+    id: conint(ge=1)
     fecha_creacion: datetime = Field(
         ...,
         description="Fecha de creación del registro"
@@ -91,11 +93,11 @@ class Aseguradora(AseguradoraBase):
         None,
         description="Última fecha de actualización"
     )
-    tipos_seguro_count: Optional[int] = Field(
+    tipos_seguro_count: Optional[conint(ge=0)] = Field(
         0,
         description="Cantidad de tipos de seguro ofrecidos"
     )
-    movimientos_count: Optional[int] = Field(
+    movimientos_count: Optional[conint(ge=0)] = Field(
         0,
         description="Cantidad de movimientos registrados"
     )
@@ -108,10 +110,9 @@ class Aseguradora(AseguradoraBase):
 class AseguradoraWithRelations(Aseguradora):
     """Modelo de aseguradora con sus relaciones incluidas."""
 
-    tipos_seguro: List["TipoSeguro"] = Field(default_factory=list)
-    movimientos: List["MovimientoVigencia"] = Field(default_factory=list)
+    tipos_seguro: List["TipoSeguro"] = Field(default_factory=list, description="Lista de tipos de seguro")
+    movimientos: List["MovimientoVigencia"] = Field(default_factory=list, description="Lista de movimientos")
 
-
-# Las referencias a otros modelos se definen como strings para evitar importaciones circulares
-TipoSeguro = "TipoSeguro"
-MovimientoVigencia = "MovimientoVigencia"
+    class Config:
+        from_attributes = True
+        alias_generator = to_lower
