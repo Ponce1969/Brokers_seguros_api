@@ -58,3 +58,8 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+
+# Project specific
+backend/pyproject.toml
+*.tar.gz
+brokerseguros_backup_*
