@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator, conint
+from typing import List, Optional, TYPE_CHECKING, Annotated
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 
 if TYPE_CHECKING:
     from .tipo_seguro import TipoSeguro
@@ -84,7 +84,7 @@ class AseguradoraUpdate(AseguradoraBase):
 class Aseguradora(AseguradoraBase):
     """Modelo completo de aseguradora con campos adicionales."""
 
-    id: conint(ge=1)
+    id: Annotated[int, Field(gt=0)]
     fecha_creacion: datetime = Field(
         ...,
         description="Fecha de creación del registro"
@@ -93,11 +93,11 @@ class Aseguradora(AseguradoraBase):
         None,
         description="Última fecha de actualización"
     )
-    tipos_seguro_count: Optional[conint(ge=0)] = Field(
+    tipos_seguro_count: Optional[Annotated[int, Field(ge=0)]] = Field(
         0,
         description="Cantidad de tipos de seguro ofrecidos"
     )
-    movimientos_count: Optional[conint(ge=0)] = Field(
+    movimientos_count: Optional[Annotated[int, Field(ge=0)]] = Field(
         0,
         description="Cantidad de movimientos registrados"
     )
