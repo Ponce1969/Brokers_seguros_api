@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
-from typing import List, Optional, TYPE_CHECKING
-from pydantic import BaseModel, EmailStr, UUID4, Field, field_validator, conint
+from typing import List, Optional, TYPE_CHECKING, Annotated
+from pydantic import BaseModel, EmailStr, UUID4, Field, field_validator
 
 if TYPE_CHECKING:
     from .tipo_documento import TipoDocumento
@@ -23,10 +23,7 @@ class ClienteBase(BaseModel):
         max_length=100,
         description="Apellidos del cliente"
     )
-    tipo_documento_id: conint(ge=1) = Field(
-        ...,
-        description="ID del tipo de documento"
-    )
+    tipo_documento_id: Annotated[int, Field(gt=0, description="ID del tipo de documento")]
     numero_documento: str = Field(
         ...,
         min_length=5,
@@ -84,20 +81,14 @@ class ClienteBase(BaseModel):
 
 
 class ClienteCreate(ClienteBase):
-    creado_por_id: conint(ge=1) = Field(
-        ...,
-        description="ID del usuario que crea el registro"
-    )
-    modificado_por_id: conint(ge=1) = Field(
-        ...,
-        description="ID del usuario que modifica el registro"
-    )
+    creado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que crea el registro")]
+    modificado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que modifica el registro")]
 
 
 class ClienteUpdate(ClienteBase):
     nombres: Optional[str] = None
     apellidos: Optional[str] = None
-    tipo_documento_id: Optional[conint(ge=1)] = None
+    tipo_documento_id: Optional[Annotated[int, Field(gt=0)]] = None
     numero_documento: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
     direccion: Optional[str] = None
@@ -106,27 +97,21 @@ class ClienteUpdate(ClienteBase):
     movil: Optional[str] = None
     mail: Optional[EmailStr] = None
     observaciones: Optional[str] = None
-    modificado_por_id: conint(ge=1) = Field(
-        ...,
-        description="ID del usuario que modifica el registro"
-    )
+    modificado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que modifica el registro")]
 
 
 class Cliente(ClienteBase):
     id: UUID4
-    numero_cliente: conint(ge=1) = Field(
-        ...,
-        description="Número único de cliente"
-    )
-    creado_por_id: conint(ge=1)
-    modificado_por_id: conint(ge=1)
+    numero_cliente: Annotated[int, Field(gt=0, description="Número único de cliente")]
+    creado_por_id: Annotated[int, Field(gt=0)]
+    modificado_por_id: Annotated[int, Field(gt=0)]
     fecha_creacion: datetime
     fecha_modificacion: datetime
-    corredores_count: Optional[conint(ge=0)] = Field(
+    corredores_count: Optional[Annotated[int, Field(ge=0)]] = Field(
         0,
         description="Cantidad de corredores asignados"
     )
-    polizas_count: Optional[conint(ge=0)] = Field(
+    polizas_count: Optional[Annotated[int, Field(ge=0)]] = Field(
         0,
         description="Cantidad de pólizas activas"
     )
