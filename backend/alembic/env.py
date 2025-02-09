@@ -26,7 +26,8 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Set the SQLAlchemy URL from environment variable
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
+DATABASE_URL = f"postgresql://{os.environ.get('POSTGRES_USER')}:{os.environ.get('POSTGRES_PASSWORD')}@{os.environ.get('POSTGRES_HOST')}:{os.environ.get('POSTGRES_PORT')}/{os.environ.get('POSTGRES_DB')}"
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -79,7 +80,5 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-# Usamos localhost en lugar de postgres cuando ejecutamos fuera del contenedor
-db_url = os.environ.get("DATABASE_URL", "").replace("@postgres:", "@localhost:")
-config.set_main_option("sqlalchemy.url", db_url)
+
 run_migrations_online()

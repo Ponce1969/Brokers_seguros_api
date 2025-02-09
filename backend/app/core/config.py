@@ -1,21 +1,51 @@
 from typing import Optional
 
-from pydantic import PostgresDsn
+from pydantic import PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # API
     PROJECT_NAME: str = "Broker Seguros API"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
-    DB_ECHO_LOG: bool = False  # Controla si SQLAlchemy debe mostrar las consultas SQL
+    DB_ECHO_LOG: bool = False
 
-    POSTGRES_SERVER: str = "postgres"  # Nombre del servicio en docker-compose
-    POSTGRES_HOST: str  # Alias para POSTGRES_SERVER
+    # JWT
+    SECRET_KEY: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    ALGORITHM: str = "HS256"
+
+    # PostgreSQL
+    POSTGRES_SERVER: str = "postgres"
+    POSTGRES_HOST: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
+    POSTGRES_PORT: str = "5432"
     DATABASE_URL: Optional[PostgresDsn] = None
+
+    # CORS
+    BACKEND_CORS_ORIGINS: str
+
+    # Environment
+    ENVIRONMENT: str = "development"
+
+    # Email
+    SMTP_TLS: bool = True
+    SMTP_PORT: int = 587
+    SMTP_HOST: str = ""
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAILS_FROM_EMAIL: str = "info@brokerseguros.com"
+    EMAILS_FROM_NAME: str = "BrokerSeguros"
+
+    # First SuperUser
+    FIRST_SUPERUSER: str
+    FIRST_SUPERUSER_PASSWORD: str
+
+    # Logging
+    LOG_LEVEL: str = "INFO"
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
@@ -33,9 +63,11 @@ class Settings(BaseSettings):
             )
         )
 
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+    model_config = {
+        "case_sensitive": True,
+        "env_file": ".env",
+        "extra": "allow"  # Permitir campos extra en la configuración
+    }
 
 
 settings = Settings()

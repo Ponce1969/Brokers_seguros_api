@@ -3,8 +3,10 @@ from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_active_user, get_current_active_superuser
 from app.db.crud.usuario import usuario_crud
 from app.db.database import get_db
+from app.db.models.usuario import Usuario as UsuarioModel
 from app.schemas.usuario import Usuario, UsuarioCreate, UsuarioUpdate
 
 router = APIRouter()
@@ -12,7 +14,10 @@ router = APIRouter()
 
 @router.get("/", response_model=List[Usuario])
 async def get_usuarios(
-    skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: UsuarioModel = Depends(get_current_active_user)
 ) -> Any:
     """
     Recuperar usuarios.
@@ -22,7 +27,10 @@ async def get_usuarios(
 
 @router.post("/", response_model=Usuario)
 async def create_usuario(
-    *, db: AsyncSession = Depends(get_db), usuario_in: UsuarioCreate
+    *,
+    db: AsyncSession = Depends(get_db),
+    usuario_in: UsuarioCreate,
+    current_user: UsuarioModel = Depends(get_current_active_superuser)
 ) -> Any:
     """
     Crear nuevo usuario.
@@ -31,7 +39,11 @@ async def create_usuario(
 
 
 @router.get("/{usuario_id}", response_model=Usuario)
-async def get_usuario(usuario_id: int, db: AsyncSession = Depends(get_db)) -> Any:
+async def get_usuario(
+    usuario_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UsuarioModel = Depends(get_current_active_user)
+) -> Any:
     """
     Obtener usuario por ID.
     """
@@ -43,7 +55,11 @@ async def get_usuario(usuario_id: int, db: AsyncSession = Depends(get_db)) -> An
 
 @router.put("/{usuario_id}", response_model=Usuario)
 async def update_usuario(
-    *, db: AsyncSession = Depends(get_db), usuario_id: int, usuario_in: UsuarioUpdate
+    *,
+    db: AsyncSession = Depends(get_db),
+    usuario_id: int,
+    usuario_in: UsuarioUpdate,
+    current_user: UsuarioModel = Depends(get_current_active_superuser)
 ) -> Any:
     """
     Actualizar usuario.
