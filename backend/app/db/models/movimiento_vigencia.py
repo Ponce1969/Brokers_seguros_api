@@ -42,3 +42,6 @@ class MovimientoVigencia(Base):
     corredor_rel = relationship("Corredor", back_populates="movimientos")
     tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")
     moneda_rel = relationship("Moneda", back_populates="movimientos")
+    corredor_rel = relationship("Corredor", back_populates="movimientos")
+    tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")
+    moneda_rel = relationship("Moneda", back_populates="movimientos")

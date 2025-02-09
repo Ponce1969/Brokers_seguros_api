@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     aseguradoras,
+    auth,
     cliente_corredor,
     clientes,
     corredores,
@@ -14,6 +15,10 @@ from app.api.v1.endpoints import (
 
 api_router = APIRouter()
 
+# Auth endpoints
+api_router.include_router(auth.router, tags=["auth"])
+
+# Resource endpoints
 api_router.include_router(usuarios.router, prefix="/usuarios", tags=["usuarios"])
 api_router.include_router(clientes.router, prefix="/clientes", tags=["clientes"])
 api_router.include_router(corredores.router, prefix="/corredores", tags=["corredores"])

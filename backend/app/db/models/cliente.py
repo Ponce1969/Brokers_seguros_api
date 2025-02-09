@@ -79,3 +79,13 @@ class Cliente(Base):
     corredores_asociados = relationship(
         "ClienteCorredor", back_populates="cliente_rel"
     )  # Relación con la tabla intermedia
+
+    # Relación con movimientos de vigencia
+    movimientos_vigencias = relationship(
+        "MovimientoVigencia", back_populates="cliente_rel"
+    )
+
+    # Relación con tipo de documento
+    tipo_documento_rel = relationship(
+        "TipoDocumento", back_populates="clientes"
+    )
