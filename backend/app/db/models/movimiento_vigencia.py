@@ -5,11 +5,24 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Enum
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from ..base_class import Base
+
+import enum
+
+
+class TipoDuracion(str, enum.Enum):
+    """Enumeración para los tipos de duración de pólizas."""
+    diaria = "diaria"
+    semanal = "semanal"
+    mensual = "mensual"
+    trimestral = "trimestral"
+    semestral = "semestral"
+    anual = "anual"
 
 
 class MovimientoVigencia(Base):
@@ -36,12 +49,15 @@ class MovimientoVigencia(Base):
     comision = Column(Float)
     cuotas = Column(Integer)
     observaciones = Column(String(500))
+    tipo_duracion = Column(
+        Enum(TipoDuracion, name="tipo_duracion"),
+        nullable=False,
+        default=TipoDuracion.anual,
+        server_default=TipoDuracion.anual.value
+    )
 
     # Relaciones
     cliente_rel = relationship("Cliente", back_populates="movimientos_vigencias")
-    corredor_rel = relationship("Corredor", back_populates="movimientos")
-    tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")
-    moneda_rel = relationship("Moneda", back_populates="movimientos")
     corredor_rel = relationship("Corredor", back_populates="movimientos")
     tipo_seguro_rel = relationship("TipoSeguro", back_populates="movimientos")
     moneda_rel = relationship("Moneda", back_populates="movimientos")
