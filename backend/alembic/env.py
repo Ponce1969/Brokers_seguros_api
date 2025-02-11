@@ -47,8 +47,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # Para la generación inicial, usamos una URL ficticia
-    url = "postgresql://user:pass@localhost/dbname"
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,

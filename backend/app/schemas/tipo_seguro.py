@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field
+
 
 # Importaciones para evitar referencias circulares
 from .aseguradora import Aseguradora
@@ -10,12 +11,8 @@ from .movimiento_vigencia import MovimientoVigencia
 
 class TipoSeguroBase(BaseModel):
     """Modelo base para tipos de seguro con validaciones y documentación."""
-    codigo: constr(min_length=2, max_length=10) = Field(
-        ..., description="Código único del tipo de seguro"
-    )
-    nombre: constr(min_length=2, max_length=100) = Field(
-        ..., description="Nombre del tipo de seguro"
-    )
+    codigo: Annotated[str, Field(min_length=2, max_length=10, description="Código único del tipo de seguro")]
+    nombre: Annotated[str, Field(min_length=2, max_length=100, description="Nombre del tipo de seguro")]
     descripcion: Optional[str] = Field(
         None, description="Descripción detallada del tipo de seguro"
     )
@@ -24,6 +21,18 @@ class TipoSeguroBase(BaseModel):
     )
     esta_activo: bool = Field(
         default=True, description="Indica si el tipo de seguro está activo"
+    )
+    categoria: str = Field(
+        ..., description="Categoría del seguro (vida, automotor, hogar, etc.)"
+    )
+    cobertura: str = Field(
+        ..., description="Descripción de la cobertura"
+    )
+    vigencia_default: int = Field(
+        default=1, description="Vigencia por defecto en años"
+    )
+    aseguradora_id: int = Field(
+        ..., description="ID de la aseguradora que ofrece este tipo de seguro"
     )
 
     class Config:
@@ -38,11 +47,15 @@ class TipoSeguroCreate(TipoSeguroBase):
 
 class TipoSeguroUpdate(TipoSeguroBase):
     """Modelo para actualizar un tipo de seguro existente."""
-    codigo: Optional[constr(min_length=2, max_length=10)] = None
-    nombre: Optional[constr(min_length=2, max_length=100)] = None
+    codigo: Optional[Annotated[str, Field(min_length=2, max_length=10)]] = None
+    nombre: Optional[Annotated[str, Field(min_length=2, max_length=100)]] = None
     descripcion: Optional[str] = None
     es_default: Optional[bool] = None
     esta_activo: Optional[bool] = None
+    categoria: Optional[str] = None
+    cobertura: Optional[str] = None
+    vigencia_default: Optional[int] = None
+    aseguradora_id: Optional[int] = None
 
 
 class TipoSeguro(TipoSeguroBase):
@@ -54,17 +67,11 @@ class TipoSeguro(TipoSeguroBase):
     fecha_actualizacion: Optional[datetime] = Field(
         None, description="Última fecha de actualización"
     )
-    aseguradoras_count: Optional[int] = Field(
-        0, description="Cantidad de aseguradoras que ofrecen este tipo"
-    )
-    movimientos_count: Optional[int] = Field(
-        0, description="Cantidad de movimientos registrados"
-    )
 
 
 class TipoSeguroWithRelations(TipoSeguro):
     """Modelo de tipo de seguro con sus relaciones incluidas."""
-    aseguradoras: List["Aseguradora"] = []
+    aseguradora: Optional["Aseguradora"] = None
     movimientos: List["MovimientoVigencia"] = []
 
 

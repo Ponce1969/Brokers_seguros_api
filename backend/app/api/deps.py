@@ -51,18 +51,22 @@ async def get_current_active_user(
     Valida que el usuario actual esté activo.
     """
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Usuario inactivo")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuario inactivo"
+        )
     return current_user
 
 
 async def get_current_active_superuser(
-    current_user: Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_active_user),
 ) -> Usuario:
     """
     Valida que el usuario actual sea superusuario.
     """
     if not current_user.is_superuser:
         raise HTTPException(
-            status_code=400, detail="El usuario no tiene suficientes privilegios"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario no tiene privilegios de superusuario"
         )
     return current_user
