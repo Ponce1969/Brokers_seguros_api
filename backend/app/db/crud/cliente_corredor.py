@@ -21,10 +21,10 @@ class CRUDClienteCorredor(
         return result.scalars().all()
 
     async def get_by_corredor(
-        self, db: AsyncSession, *, corredor_id: int
+        self, db: AsyncSession, *, corredor_numero: int
     ) -> List[ClienteCorredor]:
         result = await db.execute(
-            select(ClienteCorredor).where(ClienteCorredor.corredor_id == corredor_id)
+            select(ClienteCorredor).where(ClienteCorredor.corredor_numero == corredor_numero)
         )
         return result.scalars().all()
 
@@ -32,7 +32,9 @@ class CRUDClienteCorredor(
         self, db: AsyncSession, *, obj_in: ClienteCorredorCreate
     ) -> ClienteCorredor:
         db_obj = ClienteCorredor(
-            cliente_id=obj_in.cliente_id, corredor_id=obj_in.corredor_id
+            cliente_id=obj_in.cliente_id,
+            corredor_numero=obj_in.corredor_numero,
+            fecha_asignacion=obj_in.fecha_asignacion
         )
         db.add(db_obj)
         await db.commit()

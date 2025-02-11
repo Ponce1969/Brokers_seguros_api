@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
+from app.core.roles import Role
+
 
 class UsuarioBase(BaseModel):
     nombre: str
@@ -11,10 +13,10 @@ class UsuarioBase(BaseModel):
     username: str
     is_active: bool = True
     is_superuser: bool = False
-    role: str = "user"
+    role: Role = Role.ASISTENTE
+    corredor_numero: Optional[int] = None  # Número del corredor (relación con la tabla corredores)
     comision_porcentaje: float = 0.0
     telefono: Optional[str] = None
-    corredor_numero: Optional[int] = None
 
 
 class UsuarioCreate(UsuarioBase):

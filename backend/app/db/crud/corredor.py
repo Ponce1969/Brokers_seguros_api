@@ -10,22 +10,28 @@ from .base import CRUDBase
 
 
 class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
-    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[Corredor]:
-        result = await db.execute(select(Corredor).where(Corredor.email == email))
+    async def get_by_mail(self, db: AsyncSession, *, mail: str) -> Optional[Corredor]:
+        result = await db.execute(select(Corredor).where(Corredor.mail == mail))
         return result.scalars().first()
 
-    async def get_by_rut(self, db: AsyncSession, *, rut: str) -> Optional[Corredor]:
-        result = await db.execute(select(Corredor).where(Corredor.rut == rut))
+    async def get_by_documento(self, db: AsyncSession, *, documento: str) -> Optional[Corredor]:
+        result = await db.execute(select(Corredor).where(Corredor.documento == documento))
         return result.scalars().first()
 
     async def create(self, db: AsyncSession, *, obj_in: CorredorCreate) -> Corredor:
         db_obj = Corredor(
-            nombre=obj_in.nombre,
-            apellido=obj_in.apellido,
-            rut=obj_in.rut,
-            email=obj_in.email,
-            telefono=obj_in.telefono,
+            nombres=obj_in.nombres,
+            apellidos=obj_in.apellidos,
+            documento=obj_in.documento,
             direccion=obj_in.direccion,
+            localidad=obj_in.localidad,
+            telefonos=obj_in.telefonos,
+            movil=obj_in.movil,
+            mail=obj_in.mail,
+            observaciones=obj_in.observaciones,
+            matricula=obj_in.matricula,
+            especializacion=obj_in.especializacion,
+            fecha_alta=obj_in.fecha_alta
         )
         db.add(db_obj)
         await db.commit()

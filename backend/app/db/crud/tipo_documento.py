@@ -23,7 +23,13 @@ class CRUDTipoDocumento(
     async def create(
         self, db: AsyncSession, *, obj_in: TipoDocumentoCreate
     ) -> TipoDocumento:
-        db_obj = TipoDocumento(nombre=obj_in.nombre, descripcion=obj_in.descripcion)
+        db_obj = TipoDocumento(
+            codigo=obj_in.codigo,
+            nombre=obj_in.nombre,
+            descripcion=obj_in.descripcion,
+            es_default=obj_in.es_default,
+            esta_activo=obj_in.esta_activo
+        )
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)

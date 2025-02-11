@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     corredores,
     monedas,
     movimientos_vigencia,
+    polizas,
     tipos_documento,
     tipos_seguro,
     usuarios,
@@ -39,4 +40,7 @@ api_router.include_router(
 )
 api_router.include_router(
     cliente_corredor.router, prefix="/cliente-corredor", tags=["cliente-corredor"]
+)
+api_router.include_router(
+    polizas.router, prefix="/polizas", tags=["polizas"]
 )

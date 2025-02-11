@@ -10,23 +10,29 @@ from .base import CRUDBase
 
 
 class CRUDCliente(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
-    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[Cliente]:
-        result = await db.execute(select(Cliente).where(Cliente.email == email))
+    async def get_by_mail(self, db: AsyncSession, *, mail: str) -> Optional[Cliente]:
+        result = await db.execute(select(Cliente).where(Cliente.mail == mail))
         return result.scalars().first()
 
-    async def get_by_rut(self, db: AsyncSession, *, rut: str) -> Optional[Cliente]:
-        result = await db.execute(select(Cliente).where(Cliente.rut == rut))
+    async def get_by_numero_documento(self, db: AsyncSession, *, numero_documento: str) -> Optional[Cliente]:
+        result = await db.execute(select(Cliente).where(Cliente.numero_documento == numero_documento))
         return result.scalars().first()
 
     async def create(self, db: AsyncSession, *, obj_in: ClienteCreate) -> Cliente:
         db_obj = Cliente(
-            nombre=obj_in.nombre,
-            apellido=obj_in.apellido,
-            rut=obj_in.rut,
-            email=obj_in.email,
-            telefono=obj_in.telefono,
-            direccion=obj_in.direccion,
+            nombres=obj_in.nombres,
+            apellidos=obj_in.apellidos,
             tipo_documento_id=obj_in.tipo_documento_id,
+            numero_documento=obj_in.numero_documento,
+            fecha_nacimiento=obj_in.fecha_nacimiento,
+            direccion=obj_in.direccion,
+            localidad=obj_in.localidad,
+            telefonos=obj_in.telefonos,
+            movil=obj_in.movil,
+            mail=obj_in.mail,
+            observaciones=obj_in.observaciones,
+            creado_por_id=obj_in.creado_por_id,
+            modificado_por_id=obj_in.modificado_por_id
         )
         db.add(db_obj)
         await db.commit()

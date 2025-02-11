@@ -10,14 +10,24 @@ from .base import CRUDBase
 
 
 class CRUDTipoSeguro(CRUDBase[TipoSeguro, TipoSeguroCreate, TipoSeguroUpdate]):
-    async def get_by_nombre(
-        self, db: AsyncSession, *, nombre: str
+    async def get_by_codigo(
+        self, db: AsyncSession, *, codigo: str
     ) -> Optional[TipoSeguro]:
-        result = await db.execute(select(TipoSeguro).where(TipoSeguro.nombre == nombre))
+        result = await db.execute(select(TipoSeguro).where(TipoSeguro.codigo == codigo))
         return result.scalars().first()
 
     async def create(self, db: AsyncSession, *, obj_in: TipoSeguroCreate) -> TipoSeguro:
-        db_obj = TipoSeguro(nombre=obj_in.nombre, descripcion=obj_in.descripcion)
+        db_obj = TipoSeguro(
+            codigo=obj_in.codigo,
+            nombre=obj_in.nombre,
+            descripcion=obj_in.descripcion,
+            es_default=obj_in.es_default,
+            esta_activo=obj_in.esta_activo,
+            categoria=obj_in.categoria,
+            cobertura=obj_in.cobertura,
+            vigencia_default=obj_in.vigencia_default,
+            aseguradora_id=obj_in.aseguradora_id
+        )
         db.add(db_obj)
         await db.commit()
         await db.refresh(db_obj)

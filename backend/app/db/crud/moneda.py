@@ -16,7 +16,12 @@ class CRUDMoneda(CRUDBase[Moneda, MonedaCreate, MonedaUpdate]):
 
     async def create(self, db: AsyncSession, *, obj_in: MonedaCreate) -> Moneda:
         db_obj = Moneda(
-            codigo=obj_in.codigo, nombre=obj_in.nombre, simbolo=obj_in.simbolo
+            codigo=obj_in.codigo,
+            nombre=obj_in.nombre,
+            simbolo=obj_in.simbolo,
+            descripcion=obj_in.descripcion,
+            es_default=obj_in.es_default,
+            esta_activa=obj_in.esta_activa
         )
         db.add(db_obj)
         await db.commit()

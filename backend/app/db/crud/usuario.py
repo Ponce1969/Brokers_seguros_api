@@ -39,9 +39,9 @@ class CRUDUsuario:
             role=obj_in.role,
             is_active=True,
             is_superuser=False,
-            comision_porcentaje=obj_in.comision_porcentaje,
-            telefono=obj_in.telefono,
             corredor_numero=obj_in.corredor_numero,
+            comision_porcentaje=obj_in.comision_porcentaje,
+            telefono=obj_in.telefono
         )
         db.add(db_obj)
         await db.commit()
@@ -77,19 +77,24 @@ class CRUDUsuario:
 
     async def authenticate(self, db: AsyncSession, *, email: str, password: str) -> Optional[Usuario]:
         """
-        Autentica un usuario usando su email y contraseña.
+        Autentica un usuario usando su email/username y contraseña.
         
         Args:
             db: Sesión de base de datos
-            email: Email del usuario
+            email: Email o username del usuario
             password: Contraseña en texto plano
             
         Returns:
             Usuario si la autenticación es exitosa, None en caso contrario
         """
+        # Intentar autenticar por email
         usuario = await self.get_by_email(db, email=email)
         if not usuario:
-            return None
+            # Si no se encuentra por email, intentar por username
+            usuario = await self.get_by_username(db, username=email)
+            if not usuario:
+                return None
+        
         if not verify_password(password, usuario.hashed_password):
             return None
         return usuario
