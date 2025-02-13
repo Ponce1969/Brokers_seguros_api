@@ -22,11 +22,11 @@ class AseguradoraBase(BaseModel):
         max_length=100,
         description="Nombre de la aseguradora"
     )
-    rut: Optional[str] = Field(
+    identificador_fiscal: Optional[str] = Field(
         None,
         min_length=8,
         max_length=12,
-        description="RUT de la aseguradora"
+        description="Identificador fiscal de la aseguradora (RUT, CUIT, NIF, etc.)"
     )
     telefono: Optional[str] = Field(
         None,
@@ -56,7 +56,7 @@ class AseguradoraBase(BaseModel):
         description="Notas adicionales sobre la aseguradora"
     )
 
-    @field_validator('nombre', 'rut', 'telefono', 'direccion')
+    @field_validator('nombre', 'identificador_fiscal', 'telefono', 'direccion')
     def strip_whitespace(cls, v):
         return v.strip() if isinstance(v, str) else v
 
@@ -72,7 +72,7 @@ class AseguradoraCreate(AseguradoraBase):
 class AseguradoraUpdate(AseguradoraBase):
     """Modelo para actualizar los datos de una aseguradora existente."""
     nombre: Optional[str] = None
-    rut: Optional[str] = None
+    identificador_fiscal: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
     email: Optional[EmailStr] = None
