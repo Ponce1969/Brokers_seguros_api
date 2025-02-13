@@ -17,7 +17,7 @@ class Aseguradora(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False, unique=True)
-    rut = Column(String(12), unique=True)
+    identificador_fiscal = Column(String(12), unique=True, comment="Identificador fiscal de la aseguradora (RUT, CUIT, NIF, etc.)")
     telefono = Column(String(20))
     direccion = Column(String(200))
     email = Column(String(100))
