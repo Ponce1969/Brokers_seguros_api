@@ -1,6 +1,6 @@
 from datetime import date
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -16,6 +16,22 @@ class TipoDuracion(str, Enum):
     anual = "anual"
 
 
+class EstadisticasDuracion(BaseModel):
+    """Esquema para estadísticas por tipo de duración."""
+    tipo_duracion: TipoDuracion
+    cantidad_polizas: int
+    suma_asegurada_total: float
+    prima_total: float
+
+
+class EstadisticasResponse(BaseModel):
+    """Esquema para la respuesta de estadísticas."""
+    total_polizas: int
+    suma_asegurada_total: float
+    prima_total: float
+    por_duracion: List[EstadisticasDuracion]
+
+
 class PolizaBase(BaseModel):
     """Esquema base para pólizas (MovimientoVigencia)."""
     cliente_id: UUID
@@ -27,7 +43,10 @@ class PolizaBase(BaseModel):
     fecha_inicio: date
     fecha_vencimiento: date
     fecha_emision: Optional[date] = None
-    estado_poliza: str = Field(default="activa", description="Estado de la póliza: activa, vencida, cancelada, etc.")
+    estado_poliza: str = Field(
+        default="activa",
+        description="Estado de la póliza: activa, vencida, cancelada, etc."
+    )
     forma_pago: Optional[str] = None
     tipo_endoso: Optional[str] = None
     moneda_id: Optional[int] = None
@@ -37,58 +56,56 @@ class PolizaBase(BaseModel):
     cuotas: Optional[int] = Field(None, ge=1, description="Número de cuotas")
     observaciones: Optional[str] = None
     tipo_duracion: TipoDuracion = Field(
-        default=TipoDuracion.anual,
-        description="Tipo de duración de la póliza"
+        default=TipoDuracion.anual, description="Tipo de duración de la póliza"
     )
+
+    class Config:
+        from_attributes = True
 
 
 class PolizaCreate(PolizaBase):
     """Esquema para crear una nueva póliza."""
-    @field_validator('fecha_vencimiento')
-    def fecha_vencimiento_valida(cls, v: date, info) -> date:
-        if 'fecha_inicio' in info.data and 'tipo_duracion' in info.data:
-            inicio = info.data['fecha_inicio']
-            tipo_duracion = info.data['tipo_duracion']
-            
-            # Para pólizas diarias, la fecha de vencimiento puede ser igual a la fecha de inicio
-            if tipo_duracion == TipoDuracion.diaria:
-                if v < inicio:
-                    raise ValueError('La fecha de vencimiento no puede ser anterior a la fecha de inicio')
-            else:
-                if v <= inicio:
-                    raise ValueError('La fecha de vencimiento debe ser posterior a la fecha de inicio')
-        return v
 
-    @field_validator('comision')
-    def comision_valida(cls, v: Optional[float], info) -> Optional[float]:
+    @staticmethod
+    @field_validator("fecha_vencimiento")
+    def fecha_vencimiento_valida(v: date, values) -> date:
+        return PolizaCreate.validar_fechas(values.get("fecha_inicio"), v, values.get("tipo_duracion"))
+
+    @staticmethod
+    @field_validator("comision")
+    def comision_valida(v: Optional[float], values) -> Optional[float]:
         if v is not None:
             if v < 0:
-                raise ValueError('La comisión no puede ser negativa')
-            if 'prima' in info.data and v > info.data['prima']:
-                raise ValueError('La comisión no puede ser mayor que la prima')
+                raise ValueError("La comisión no puede ser negativa")
+            if "prima" in values and v > values["prima"]:
+                raise ValueError("La comisión no puede ser mayor que la prima")
         return v
 
-    @field_validator('tipo_duracion')
-    def validar_duracion_fechas(cls, v: TipoDuracion, info) -> TipoDuracion:
-        if 'fecha_inicio' in info.data and 'fecha_vencimiento' in info.data:
-            inicio = info.data['fecha_inicio']
-            vencimiento = info.data['fecha_vencimiento']
-            dias = (vencimiento - inicio).days + 1  # +1 para incluir el día de inicio
-            
-            # Validar que la duración coincida con el tipo seleccionado
-            if v == TipoDuracion.diaria and dias > 1:
-                raise ValueError('Una póliza diaria no puede durar más de 1 día')
-            elif v == TipoDuracion.semanal and dias > 7:
-                raise ValueError('Una póliza semanal no puede durar más de 7 días')
-            elif v == TipoDuracion.mensual and dias > 31:
-                raise ValueError('Una póliza mensual no puede durar más de 31 días')
-            elif v == TipoDuracion.trimestral and dias > 92:
-                raise ValueError('Una póliza trimestral no puede durar más de 92 días')
-            elif v == TipoDuracion.semestral and dias > 183:
-                raise ValueError('Una póliza semestral no puede durar más de 183 días')
-            elif v == TipoDuracion.anual and dias > 366:
-                raise ValueError('Una póliza anual no puede durar más de 366 días')
-        return v
+    @staticmethod
+    @field_validator("tipo_duracion")
+    def validar_duracion_fechas(v: TipoDuracion, values) -> TipoDuracion:
+        return PolizaCreate.validar_fechas(values.get("fecha_inicio"), values.get("fecha_vencimiento"), v)
+
+    @staticmethod
+    def validar_fechas(fecha_inicio: Optional[date], fecha_vencimiento: Optional[date], tipo_duracion: Optional[TipoDuracion]) -> date:
+        if not fecha_inicio or not fecha_vencimiento or not tipo_duracion:
+            return fecha_vencimiento  # Retorna sin validaciones si faltan valores
+
+        dias = (fecha_vencimiento - fecha_inicio).days + 1
+
+        limites = {
+            TipoDuracion.diaria: 1,
+            TipoDuracion.semanal: 7,
+            TipoDuracion.mensual: 31,
+            TipoDuracion.trimestral: 92,
+            TipoDuracion.semestral: 183,
+            TipoDuracion.anual: 366,
+        }
+
+        if dias > limites.get(tipo_duracion, 0):
+            raise ValueError(f"Una póliza {tipo_duracion} no puede durar más de {limites[tipo_duracion]} días")
+
+        return fecha_vencimiento
 
 
 class PolizaUpdate(BaseModel):
@@ -117,9 +134,6 @@ class PolizaUpdate(BaseModel):
 class Poliza(PolizaBase):
     """Esquema para leer una póliza."""
     id: int
-    
-    class Config:
-        from_attributes = True
 
 
 class PolizaDetalle(Poliza):
@@ -129,49 +143,8 @@ class PolizaDetalle(Poliza):
     tipo_seguro_rel: Dict = Field(..., alias="tipo_seguro", description="Información del tipo de seguro")
     moneda_rel: Optional[Dict] = Field(None, alias="moneda", description="Información de la moneda")
 
-    @field_validator('cliente_rel', mode='before')
-    def extract_cliente(cls, v):
-        if hasattr(v, '__dict__'):
-            return {
-                'id': str(v.id),
-                'nombres': v.nombres,
-                'apellidos': v.apellidos,
-                'numero_documento': v.numero_documento
-            }
-        return v
-
-    @field_validator('corredor_rel', mode='before')
-    def extract_corredor(cls, v):
-        if hasattr(v, '__dict__'):
-            return {
-                'numero': v.numero,
-                'nombres': v.nombres,
-                'apellidos': v.apellidos
-            }
-        return v
-
-    @field_validator('tipo_seguro_rel', mode='before')
-    def extract_tipo_seguro(cls, v):
-        if hasattr(v, '__dict__'):
-            return {
-                'id': v.id,
-                'codigo': v.codigo,
-                'nombre': v.nombre,
-                'categoria': v.categoria
-            }
-        return v
-
-    @field_validator('moneda_rel', mode='before')
-    def extract_moneda(cls, v):
-        if hasattr(v, '__dict__'):
-            return {
-                'id': v.id,
-                'codigo': v.codigo,
-                'nombre': v.nombre,
-                'simbolo': v.simbolo
-            }
-        return v
-
     class Config:
-        from_attributes = True
         populate_by_name = True
+
+
+
