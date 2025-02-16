@@ -35,21 +35,19 @@ class Usuario(Base):
         DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now
     )
 
-    # Relaciones con nombres de cadena para evitar importaciones circulares
+    # Relaciones
     clientes_creados = relationship(
         "Cliente",
-        foreign_keys="[Cliente.creado_por_id]",
         back_populates="creado_por_usuario",
+        foreign_keys="Cliente.creado_por_id",
         lazy="selectin",
     )
     clientes_modificados = relationship(
         "Cliente",
-        foreign_keys="[Cliente.modificado_por_id]",
         back_populates="modificado_por_usuario",
+        foreign_keys="Cliente.modificado_por_id",
         lazy="selectin",
     )
-
-    # Relación con corredor
     corredor_rel = relationship(
         "Corredor",
         back_populates="usuarios",
