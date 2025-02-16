@@ -67,25 +67,31 @@ class Cliente(Base):
         DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now
     )
 
-    # Relaciones con nombres de cadena para evitar importaciones circulares
+    # Relaciones
     creado_por_usuario = relationship(
         "Usuario",
-        foreign_keys=[creado_por_id],
+        foreign_keys="Cliente.creado_por_id",
         back_populates="clientes_creados",
         lazy="selectin",
     )
     modificado_por_usuario = relationship(
         "Usuario",
-        foreign_keys=[modificado_por_id],
+        foreign_keys="Cliente.modificado_por_id",
         back_populates="clientes_modificados",
         lazy="selectin",
     )
     corredores_asociados = relationship(
-        "ClienteCorredor", back_populates="cliente_rel", lazy="selectin"
+        "ClienteCorredor",
+        back_populates="cliente_rel",
+        lazy="selectin",
     )
     movimientos_vigencias = relationship(
-        "MovimientoVigencia", back_populates="cliente_rel", lazy="selectin"
+        "MovimientoVigencia",
+        back_populates="cliente_rel",
+        lazy="selectin",
     )
     tipo_documento_rel = relationship(
-        "TipoDocumento", back_populates="clientes", lazy="selectin"
+        "TipoDocumento",
+        back_populates="clientes",
+        lazy="selectin",
     )

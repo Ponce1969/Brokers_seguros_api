@@ -1,6 +1,6 @@
 """cambiar rut a identificador fiscal en aseguradoras
 
-Revision ID: cambiar_rut_a_identificador_fiscal
+Revision ID: h1a48cbb86c
 Revises: f1a48cbb86c
 Create Date: 2024-02-14 10:00:00.000000
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'cambiar_rut_a_identificador_fiscal'
+revision: str = 'h1a48cbb86c'
 down_revision: Union[str, None] = 'f1a48cbb86c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
