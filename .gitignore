@@ -46,3 +46,11 @@ docker-compose.override.yml
 
 # Backups
 *_backup_*.tar.gz
+
+# Environment variables
+.env
+.env.*
+backend/.env
+backend/.env.*
+.venv/
+venv/
