@@ -14,7 +14,9 @@ class UsuarioBase(BaseModel):
     is_active: bool = True
     is_superuser: bool = False
     role: Role = Role.ASISTENTE
-    corredor_numero: Optional[int] = None  # Número del corredor (relación con la tabla corredores)
+    corredor_numero: Optional[int] = (
+        None  # Número del corredor (relación con la tabla corredores)
+    )
     comision_porcentaje: float = 0.0
     telefono: Optional[str] = None
 

@@ -8,7 +8,7 @@ from app.core.config import settings
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
 # Configurar CORS
@@ -22,6 +22,7 @@ app.add_middleware(
 
 # Configurar los routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/")
 async def root():

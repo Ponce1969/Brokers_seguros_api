@@ -1,6 +1,6 @@
 from datetime import date
 from enum import Enum
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class TipoDuracion(str, Enum):
     """Enumeración para los tipos de duración de pólizas."""
+
     diaria = "diaria"
     semanal = "semanal"
     mensual = "mensual"
@@ -18,6 +19,7 @@ class TipoDuracion(str, Enum):
 
 class EstadisticasDuracion(BaseModel):
     """Esquema para estadísticas por tipo de duración."""
+
     tipo_duracion: TipoDuracion
     cantidad_polizas: int
     suma_asegurada_total: float
@@ -26,6 +28,7 @@ class EstadisticasDuracion(BaseModel):
 
 class EstadisticasResponse(BaseModel):
     """Esquema para la respuesta de estadísticas."""
+
     total_polizas: int
     suma_asegurada_total: float
     prima_total: float
@@ -34,6 +37,7 @@ class EstadisticasResponse(BaseModel):
 
 class PolizaBase(BaseModel):
     """Esquema base para pólizas (MovimientoVigencia)."""
+
     cliente_id: UUID
     corredor_id: Optional[int] = None
     tipo_seguro_id: int
@@ -45,7 +49,7 @@ class PolizaBase(BaseModel):
     fecha_emision: Optional[date] = None
     estado_poliza: str = Field(
         default="activa",
-        description="Estado de la póliza: activa, vencida, cancelada, etc."
+        description="Estado de la póliza: activa, vencida, cancelada, etc.",
     )
     forma_pago: Optional[str] = None
     tipo_endoso: Optional[str] = None
@@ -69,7 +73,9 @@ class PolizaCreate(PolizaBase):
     @staticmethod
     @field_validator("fecha_vencimiento")
     def fecha_vencimiento_valida(v: date, values) -> date:
-        return PolizaCreate.validar_fechas(values.get("fecha_inicio"), v, values.get("tipo_duracion"))
+        return PolizaCreate.validar_fechas(
+            values.get("fecha_inicio"), v, values.get("tipo_duracion")
+        )
 
     @staticmethod
     @field_validator("comision")
@@ -84,10 +90,16 @@ class PolizaCreate(PolizaBase):
     @staticmethod
     @field_validator("tipo_duracion")
     def validar_duracion_fechas(v: TipoDuracion, values) -> TipoDuracion:
-        return PolizaCreate.validar_fechas(values.get("fecha_inicio"), values.get("fecha_vencimiento"), v)
+        return PolizaCreate.validar_fechas(
+            values.get("fecha_inicio"), values.get("fecha_vencimiento"), v
+        )
 
     @staticmethod
-    def validar_fechas(fecha_inicio: Optional[date], fecha_vencimiento: Optional[date], tipo_duracion: Optional[TipoDuracion]) -> date:
+    def validar_fechas(
+        fecha_inicio: Optional[date],
+        fecha_vencimiento: Optional[date],
+        tipo_duracion: Optional[TipoDuracion],
+    ) -> date:
         if not fecha_inicio or not fecha_vencimiento or not tipo_duracion:
             return fecha_vencimiento  # Retorna sin validaciones si faltan valores
 
@@ -103,13 +115,16 @@ class PolizaCreate(PolizaBase):
         }
 
         if dias > limites.get(tipo_duracion, 0):
-            raise ValueError(f"Una póliza {tipo_duracion} no puede durar más de {limites[tipo_duracion]} días")
+            raise ValueError(
+                f"Una póliza {tipo_duracion} no puede durar más de {limites[tipo_duracion]} días"
+            )
 
         return fecha_vencimiento
 
 
 class PolizaUpdate(BaseModel):
     """Esquema para actualizar una póliza existente."""
+
     cliente_id: Optional[UUID] = None
     corredor_id: Optional[int] = None
     tipo_seguro_id: Optional[int] = None
@@ -133,18 +148,25 @@ class PolizaUpdate(BaseModel):
 
 class Poliza(PolizaBase):
     """Esquema para leer una póliza."""
+
     id: int
 
 
 class PolizaDetalle(Poliza):
     """Esquema detallado de póliza con información relacionada."""
-    cliente_rel: Dict = Field(..., alias="cliente", description="Información del cliente")
-    corredor_rel: Optional[Dict] = Field(None, alias="corredor", description="Información del corredor")
-    tipo_seguro_rel: Dict = Field(..., alias="tipo_seguro", description="Información del tipo de seguro")
-    moneda_rel: Optional[Dict] = Field(None, alias="moneda", description="Información de la moneda")
+
+    cliente_rel: Dict = Field(
+        ..., alias="cliente", description="Información del cliente"
+    )
+    corredor_rel: Optional[Dict] = Field(
+        None, alias="corredor", description="Información del corredor"
+    )
+    tipo_seguro_rel: Dict = Field(
+        ..., alias="tipo_seguro", description="Información del tipo de seguro"
+    )
+    moneda_rel: Optional[Dict] = Field(
+        None, alias="moneda", description="Información de la moneda"
+    )
 
     class Config:
         populate_by_name = True
-
-
-

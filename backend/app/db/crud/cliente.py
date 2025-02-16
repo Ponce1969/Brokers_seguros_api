@@ -14,8 +14,12 @@ class CRUDCliente(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
         result = await db.execute(select(Cliente).where(Cliente.mail == mail))
         return result.scalars().first()
 
-    async def get_by_numero_documento(self, db: AsyncSession, *, numero_documento: str) -> Optional[Cliente]:
-        result = await db.execute(select(Cliente).where(Cliente.numero_documento == numero_documento))
+    async def get_by_numero_documento(
+        self, db: AsyncSession, *, numero_documento: str
+    ) -> Optional[Cliente]:
+        result = await db.execute(
+            select(Cliente).where(Cliente.numero_documento == numero_documento)
+        )
         return result.scalars().first()
 
     async def create(self, db: AsyncSession, *, obj_in: ClienteCreate) -> Cliente:
@@ -32,7 +36,7 @@ class CRUDCliente(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
             mail=obj_in.mail,
             observaciones=obj_in.observaciones,
             creado_por_id=obj_in.creado_por_id,
-            modificado_por_id=obj_in.modificado_por_id
+            modificado_por_id=obj_in.modificado_por_id,
         )
         db.add(db_obj)
         await db.commit()

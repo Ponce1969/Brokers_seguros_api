@@ -1,22 +1,15 @@
-from sqlalchemy import (
-    Column,
-    Date,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Enum
-)
+import enum
+
+from sqlalchemy import Column, Date, Enum, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from ..base_class import Base
 
-import enum
-
 
 class TipoDuracion(str, enum.Enum):
     """Enumeración para los tipos de duración de pólizas."""
+
     diaria = "diaria"
     semanal = "semanal"
     mensual = "mensual"
@@ -53,7 +46,7 @@ class MovimientoVigencia(Base):
         Enum(TipoDuracion, name="tipo_duracion"),
         nullable=False,
         default=TipoDuracion.anual,
-        server_default=TipoDuracion.anual.value
+        server_default=TipoDuracion.anual.value,
     )
 
     # Relaciones

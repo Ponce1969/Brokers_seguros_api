@@ -21,7 +21,7 @@ class CRUDMoneda(CRUDBase[Moneda, MonedaCreate, MonedaUpdate]):
             simbolo=obj_in.simbolo,
             descripcion=obj_in.descripcion,
             es_default=obj_in.es_default,
-            esta_activa=obj_in.esta_activa
+            esta_activa=obj_in.esta_activa,
         )
         db.add(db_obj)
         await db.commit()

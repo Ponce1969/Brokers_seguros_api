@@ -1,14 +1,16 @@
 from enum import Enum
 from typing import Set
 
+
 class Role(str, Enum):
     ADMIN = "admin"
     CORREDOR = "corredor"
     ASISTENTE = "asistente"
 
+
 class RolePermissions:
     """Define los permisos por rol"""
-    
+
     PERMISSIONS = {
         Role.ADMIN: {
             "usuarios_crear",
@@ -25,7 +27,7 @@ class RolePermissions:
             "clientes_eliminar",
             "reportes_ver",
             "comisiones_ver",
-            "comisiones_editar"
+            "comisiones_editar",
         },
         Role.CORREDOR: {
             "polizas_crear",
@@ -34,13 +36,9 @@ class RolePermissions:
             "clientes_crear",
             "clientes_ver",
             "clientes_editar",
-            "comisiones_ver"
+            "comisiones_ver",
         },
-        Role.ASISTENTE: {
-            "polizas_ver",
-            "clientes_ver",
-            "reportes_ver"
-        }
+        Role.ASISTENTE: {"polizas_ver", "clientes_ver", "reportes_ver"},
     }
 
     @classmethod

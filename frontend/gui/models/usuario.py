@@ -1,15 +1,18 @@
 """
 Modelo de datos para Usuario
 """
+
 from dataclasses import dataclass
 from typing import Optional
 from datetime import datetime
+
 
 @dataclass
 class Usuario:
     """
     Clase que representa un usuario/corredor en el sistema
     """
+
     username: str = ""
     email: str = ""
     nombres: str = ""  # Cambiado de nombre
@@ -45,56 +48,83 @@ class Usuario:
     def dict(self) -> dict:
         """Convierte el objeto a un diccionario"""
         return {
-            'username': self.username,
-            'email': self.email,
-            'nombres': self.nombres,
-            'apellidos': self.apellidos,
-            'is_active': self.is_active,
-            'is_superuser': self.is_superuser,
-            'role': self.role,
-            'corredor_numero': self.corredor_numero,
-            'comision_porcentaje': self.comision_porcentaje,
-            'telefono': self.telefono,
-            'movil': self.movil,
-            'documento': self.documento,
-            'direccion': self.direccion,
-            'localidad': self.localidad,
-            'fecha_alta': self.fecha_alta,
-            'fecha_baja': self.fecha_baja,
-            'matricula': self.matricula,
-            'especializacion': self.especializacion,
-            'id': self.id
+            "username": self.username,
+            "email": self.email,
+            "nombres": self.nombres,
+            "apellidos": self.apellidos,
+            "is_active": self.is_active,
+            "is_superuser": self.is_superuser,
+            "role": self.role,
+            "corredor_numero": self.corredor_numero,
+            "comision_porcentaje": self.comision_porcentaje,
+            "telefono": self.telefono,
+            "movil": self.movil,
+            "documento": self.documento,
+            "direccion": self.direccion,
+            "localidad": self.localidad,
+            "fecha_alta": self.fecha_alta,
+            "fecha_baja": self.fecha_baja,
+            "matricula": self.matricula,
+            "especializacion": self.especializacion,
+            "id": self.id,
         }
 
     @classmethod
-    def from_dict(cls, datos: dict) -> 'Usuario':
+    def from_dict(cls, datos: dict) -> "Usuario":
         """Crea una instancia de Usuario desde un diccionario"""
         # Asegurarse de que solo se usen los campos definidos en la clase
         campos_validos = {
-            'username', 'email', 'nombres', 'apellidos', 'is_active', 
-            'is_superuser', 'role', 'corredor_numero', 'comision_porcentaje', 
-            'telefono', 'movil', 'documento', 'direccion', 'localidad',
-            'fecha_alta', 'fecha_baja', 'matricula', 'especializacion',
-            'fecha_creacion', 'fecha_modificacion', 'id'
+            "username",
+            "email",
+            "nombres",
+            "apellidos",
+            "is_active",
+            "is_superuser",
+            "role",
+            "corredor_numero",
+            "comision_porcentaje",
+            "telefono",
+            "movil",
+            "documento",
+            "direccion",
+            "localidad",
+            "fecha_alta",
+            "fecha_baja",
+            "matricula",
+            "especializacion",
+            "fecha_creacion",
+            "fecha_modificacion",
+            "id",
         }
         datos_filtrados = {k: v for k, v in datos.items() if k in campos_validos}
-        
+
         # Convertir fechas si están en formato string
-        for campo_fecha in ['fecha_alta', 'fecha_baja', 'fecha_creacion', 'fecha_modificacion']:
-            if campo_fecha in datos_filtrados and isinstance(datos_filtrados[campo_fecha], str):
+        for campo_fecha in [
+            "fecha_alta",
+            "fecha_baja",
+            "fecha_creacion",
+            "fecha_modificacion",
+        ]:
+            if campo_fecha in datos_filtrados and isinstance(
+                datos_filtrados[campo_fecha], str
+            ):
                 datos_filtrados[campo_fecha] = datetime.fromisoformat(
-                    datos_filtrados[campo_fecha].replace('Z', '+00:00')
+                    datos_filtrados[campo_fecha].replace("Z", "+00:00")
                 )
-        
+
         return cls(**datos_filtrados)
 
     def __str__(self) -> str:
         """Representación en string del usuario"""
-        return (f"{self.nombre_completo} - Corredor #{self.corredor_numero or 'N/A'} "
-                f"({self.role})")
+        return (
+            f"{self.nombre_completo} - Corredor #{self.corredor_numero or 'N/A'} "
+            f"({self.role})"
+        )
 
     def __repr__(self) -> str:
         """Representación detallada del usuario"""
-        return (f"Usuario(username='{self.username}', email='{self.email}', "
-                f"nombres='{self.nombres}', apellidos='{self.apellidos}', "
-                f"corredor_numero={self.corredor_numero}, role='{self.role}')")
+        return (
+            f"Usuario(username='{self.username}', email='{self.email}', "
+            f"nombres='{self.nombres}', apellidos='{self.apellidos}', "
+            f"corredor_numero={self.corredor_numero}, role='{self.role}')"
+        )

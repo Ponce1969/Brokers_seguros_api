@@ -26,7 +26,7 @@ class CRUDTipoSeguro(CRUDBase[TipoSeguro, TipoSeguroCreate, TipoSeguroUpdate]):
             categoria=obj_in.categoria,
             cobertura=obj_in.cobertura,
             vigencia_default=obj_in.vigencia_default,
-            aseguradora_id=obj_in.aseguradora_id
+            aseguradora_id=obj_in.aseguradora_id,
         )
         db.add(db_obj)
         await db.commit()

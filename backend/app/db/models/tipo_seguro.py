@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
@@ -27,9 +28,7 @@ class TipoSeguro(Base):
     aseguradora_id = Column(Integer, ForeignKey("aseguradoras.id"), nullable=False)
     fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
     fecha_actualizacion = Column(
-        DateTime(timezone=True),
-        default=get_utc_now,
-        onupdate=get_utc_now
+        DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now
     )
 
     # Relaciones

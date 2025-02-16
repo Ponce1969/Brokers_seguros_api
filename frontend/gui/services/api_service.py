@@ -1,6 +1,7 @@
 """
 Servicio para manejar las comunicaciones con la API REST
 """
+
 import aiohttp
 import logging
 import json
@@ -11,21 +12,23 @@ from frontend.gui.core.excepciones import ErrorAPI
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class ServicioAPI:
     """
     Clase para manejar todas las comunicaciones con la API REST
     """
+
     def __init__(self, url_base: str):
-        self.url_base = url_base.rstrip('/')  # Remover slash final si existe
+        self.url_base = url_base.rstrip("/")  # Remover slash final si existe
         self._token: Optional[str] = None
         self._session: Optional[aiohttp.ClientSession] = None
 
     @property
     def headers(self) -> Dict[str, str]:
         """Construye los headers para las peticiones"""
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
         if self._token:
-            headers['Authorization'] = f'Bearer {self._token}'
+            headers["Authorization"] = f"Bearer {self._token}"
         return headers
 
     def establecer_token(self, token: str) -> None:
@@ -39,29 +42,35 @@ class ServicioAPI:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def _manejar_respuesta(self, response: aiohttp.ClientResponse, operacion: str) -> Any:
+    async def _manejar_respuesta(
+        self, response: aiohttp.ClientResponse, operacion: str
+    ) -> Any:
         """Maneja la respuesta de la API y registra información relevante"""
         try:
             logger.info(f"=== Manejando respuesta de {operacion} ===")
             logger.info(f"Código de estado: {response.status}")
             logger.info(f"Headers de respuesta: {dict(response.headers)}")
-            
-            content_type = response.headers.get('Content-Type', 'No especificado')
+
+            content_type = response.headers.get("Content-Type", "No especificado")
             logger.info(f"Content-Type: {content_type}")
 
             if response.status >= 400:
                 logger.error(f"=== Error en respuesta de {operacion} ===")
                 texto = await response.text()
                 logger.error(f"Respuesta texto: {texto}")
-                
+
                 try:
                     detalle = await response.json()
-                    logger.error(f"Respuesta JSON: {json.dumps(detalle, indent=2, ensure_ascii=False)}")
+                    logger.error(
+                        f"Respuesta JSON: {json.dumps(detalle, indent=2, ensure_ascii=False)}"
+                    )
                     mensaje_error = f"Error HTTP en {operacion}: {response.status} - {json.dumps(detalle, indent=2)}"
                 except ValueError:
                     logger.error("No se pudo parsear la respuesta como JSON")
-                    mensaje_error = f"Error HTTP en {operacion}: {response.status} - {texto}"
-                
+                    mensaje_error = (
+                        f"Error HTTP en {operacion}: {response.status} - {texto}"
+                    )
+
                 raise ErrorAPI(mensaje_error)
 
             if response.content_length:
@@ -74,8 +83,10 @@ class ServicioAPI:
                     logger.error(f"Error al parsear respuesta JSON: {str(e)}")
                     texto = await response.text()
                     logger.error(f"Contenido de respuesta (texto): {texto}")
-                    raise ErrorAPI(f"Error al procesar respuesta del servidor en {operacion}")
-            
+                    raise ErrorAPI(
+                        f"Error al procesar respuesta del servidor en {operacion}"
+                    )
+
             logger.info("Respuesta sin contenido")
             return None
 
@@ -84,7 +95,7 @@ class ServicioAPI:
             logger.error(f"Tipo de error: {type(e).__name__}")
             logger.error(f"Mensaje de error: {str(e)}")
             raise ErrorAPI(f"Error en la comunicación con el servidor: {str(e)}")
-        
+
         except Exception as e:
             logger.error(f"=== Error inesperado en {operacion} ===")
             logger.error(f"Tipo de error: {type(e).__name__}")
@@ -94,7 +105,6 @@ class ServicioAPI:
     async def get(self, endpoint: str) -> Any:
         """Realiza una petición GET"""
         url = f"{self.url_base}/{endpoint}"
-        self._log_request("GET", url)
         session = await self._get_session()
         async with session.get(url, headers=self.headers) as response:
             return await self._manejar_respuesta(response, f"GET {endpoint}")
@@ -108,29 +118,31 @@ class ServicioAPI:
             logger.info(f"Headers: {self.headers}")
             logger.info("Datos a enviar (sin contraseña):")
             datos_log = datos.copy()
-            if 'password' in datos_log:
-                datos_log['password'] = '********'
+            if "password" in datos_log:
+                datos_log["password"] = "********"
             logger.info(f"{json.dumps(datos_log, indent=2, ensure_ascii=False)}")
 
             session = await self._get_session()
             async with session.post(url, headers=self.headers, json=datos) as response:
                 logger.info(f"Código de respuesta: {response.status}")
-                
+
                 if response.status >= 400:
-                    content_type = response.headers.get('Content-Type', '')
+                    content_type = response.headers.get("Content-Type", "")
                     logger.error(f"Error en la respuesta. Content-Type: {content_type}")
-                    
+
                     texto = await response.text()
                     logger.error(f"Respuesta de error (texto): {texto}")
-                    
+
                     try:
                         json_resp = await response.json()
-                        logger.error(f"Respuesta de error (JSON): {json.dumps(json_resp, indent=2)}")
-                    except:
+                        logger.error(
+                            f"Respuesta de error (JSON): {json.dumps(json_resp, indent=2)}"
+                        )
+                    except ValueError:
                         logger.error("No se pudo parsear la respuesta como JSON")
-                
+
                 return await self._manejar_respuesta(response, f"POST {endpoint}")
-                
+
         except aiohttp.ClientError as e:
             logger.error(f"=== Error de cliente HTTP en POST {endpoint} ===")
             logger.error(f"Tipo de error: {type(e).__name__}")
@@ -145,7 +157,6 @@ class ServicioAPI:
     async def put(self, endpoint: str, datos: Dict) -> Any:
         """Realiza una petición PUT"""
         url = f"{self.url_base}/{endpoint}"
-        self._log_request("PUT", url, datos)
         session = await self._get_session()
         async with session.put(url, headers=self.headers, json=datos) as response:
             return await self._manejar_respuesta(response, f"PUT {endpoint}")
@@ -153,7 +164,6 @@ class ServicioAPI:
     async def delete(self, endpoint: str) -> bool:
         """Realiza una petición DELETE"""
         url = f"{self.url_base}/{endpoint}"
-        self._log_request("DELETE", url)
         session = await self._get_session()
         async with session.delete(url, headers=self.headers) as response:
             await self._manejar_respuesta(response, f"DELETE {endpoint}")
