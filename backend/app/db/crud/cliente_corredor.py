@@ -24,7 +24,9 @@ class CRUDClienteCorredor(
         self, db: AsyncSession, *, corredor_numero: int
     ) -> List[ClienteCorredor]:
         result = await db.execute(
-            select(ClienteCorredor).where(ClienteCorredor.corredor_numero == corredor_numero)
+            select(ClienteCorredor).where(
+                ClienteCorredor.corredor_numero == corredor_numero
+            )
         )
         return result.scalars().all()
 
@@ -34,7 +36,7 @@ class CRUDClienteCorredor(
         db_obj = ClienteCorredor(
             cliente_id=obj_in.cliente_id,
             corredor_numero=obj_in.corredor_numero,
-            fecha_asignacion=obj_in.fecha_asignacion
+            fecha_asignacion=obj_in.fecha_asignacion,
         )
         db.add(db_obj)
         await db.commit()

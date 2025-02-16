@@ -1,72 +1,55 @@
 from __future__ import annotations
+
 from datetime import date, datetime
-from typing import List, Optional, TYPE_CHECKING, Annotated
-from pydantic import BaseModel, EmailStr, UUID4, Field, field_validator
+from typing import TYPE_CHECKING, Annotated, List, Optional
+
+from pydantic import UUID4, BaseModel, EmailStr, Field, field_validator
 
 if TYPE_CHECKING:
-    from .tipo_documento import TipoDocumento
     from .corredor import Corredor
     from .movimiento_vigencia import MovimientoVigencia
+    from .tipo_documento import TipoDocumento
     from .usuario import Usuario
 
 
 class ClienteBase(BaseModel):
     nombres: str = Field(
-        ...,
-        min_length=2,
-        max_length=100,
-        description="Nombres del cliente"
+        ..., min_length=2, max_length=100, description="Nombres del cliente"
     )
     apellidos: str = Field(
-        ...,
-        min_length=2,
-        max_length=100,
-        description="Apellidos del cliente"
+        ..., min_length=2, max_length=100, description="Apellidos del cliente"
     )
-    tipo_documento_id: Annotated[int, Field(gt=0, description="ID del tipo de documento")]
+    tipo_documento_id: Annotated[
+        int, Field(gt=0, description="ID del tipo de documento")
+    ]
     numero_documento: str = Field(
-        ...,
-        min_length=5,
-        max_length=20,
-        description="Número de documento del cliente"
+        ..., min_length=5, max_length=20, description="Número de documento del cliente"
     )
-    fecha_nacimiento: date = Field(
-        ...,
-        description="Fecha de nacimiento del cliente"
-    )
+    fecha_nacimiento: date = Field(..., description="Fecha de nacimiento del cliente")
     direccion: str = Field(
-        ...,
-        min_length=5,
-        max_length=200,
-        description="Dirección completa del cliente"
+        ..., min_length=5, max_length=200, description="Dirección completa del cliente"
     )
     localidad: Optional[str] = Field(
-        None,
-        max_length=100,
-        description="Localidad del cliente"
+        None, max_length=100, description="Localidad del cliente"
     )
     telefonos: str = Field(
-        ...,
-        min_length=8,
-        max_length=50,
-        description="Teléfonos de contacto"
+        ..., min_length=8, max_length=50, description="Teléfonos de contacto"
     )
     movil: str = Field(
-        ...,
-        min_length=8,
-        max_length=50,
-        description="Número de celular"
+        ..., min_length=8, max_length=50, description="Número de celular"
     )
-    mail: EmailStr = Field(
-        ...,
-        description="Correo electrónico del cliente"
-    )
-    observaciones: Optional[str] = Field(
-        None,
-        description="Observaciones adicionales"
-    )
+    mail: EmailStr = Field(..., description="Correo electrónico del cliente")
+    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
 
-    @field_validator('nombres', 'apellidos', 'numero_documento', 'direccion', 'localidad', 'telefonos', 'movil')
+    @field_validator(
+        "nombres",
+        "apellidos",
+        "numero_documento",
+        "direccion",
+        "localidad",
+        "telefonos",
+        "movil",
+    )
     def strip_whitespace(cls, v):
         return v.strip() if isinstance(v, str) else v
 
@@ -81,8 +64,12 @@ class ClienteBase(BaseModel):
 
 
 class ClienteCreate(ClienteBase):
-    creado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que crea el registro")]
-    modificado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que modifica el registro")]
+    creado_por_id: Annotated[
+        int, Field(gt=0, description="ID del usuario que crea el registro")
+    ]
+    modificado_por_id: Annotated[
+        int, Field(gt=0, description="ID del usuario que modifica el registro")
+    ]
 
 
 class ClienteUpdate(ClienteBase):
@@ -97,7 +84,9 @@ class ClienteUpdate(ClienteBase):
     movil: Optional[str] = None
     mail: Optional[EmailStr] = None
     observaciones: Optional[str] = None
-    modificado_por_id: Annotated[int, Field(gt=0, description="ID del usuario que modifica el registro")]
+    modificado_por_id: Annotated[
+        int, Field(gt=0, description="ID del usuario que modifica el registro")
+    ]
 
 
 class Cliente(ClienteBase):
@@ -108,12 +97,10 @@ class Cliente(ClienteBase):
     fecha_creacion: datetime
     fecha_modificacion: datetime
     corredores_count: Optional[Annotated[int, Field(ge=0)]] = Field(
-        0,
-        description="Cantidad de corredores asignados"
+        0, description="Cantidad de corredores asignados"
     )
     polizas_count: Optional[Annotated[int, Field(ge=0)]] = Field(
-        0,
-        description="Cantidad de pólizas activas"
+        0, description="Cantidad de pólizas activas"
     )
 
     class Config:
@@ -121,11 +108,21 @@ class Cliente(ClienteBase):
 
 
 class ClienteWithRelations(Cliente):
-    tipo_documento: Optional["TipoDocumento"] = Field(None, description="Tipo de documento del cliente")
-    corredores: List["Corredor"] = Field(default_factory=list, description="Lista de corredores asignados")
-    movimientos: List["MovimientoVigencia"] = Field(default_factory=list, description="Lista de movimientos")
-    creado_por: Optional["Usuario"] = Field(None, description="Usuario que creó el registro")
-    modificado_por: Optional["Usuario"] = Field(None, description="Usuario que modificó el registro")
+    tipo_documento: Optional["TipoDocumento"] = Field(
+        None, description="Tipo de documento del cliente"
+    )
+    corredores: List["Corredor"] = Field(
+        default_factory=list, description="Lista de corredores asignados"
+    )
+    movimientos: List["MovimientoVigencia"] = Field(
+        default_factory=list, description="Lista de movimientos"
+    )
+    creado_por: Optional["Usuario"] = Field(
+        None, description="Usuario que creó el registro"
+    )
+    modificado_por: Optional["Usuario"] = Field(
+        None, description="Usuario que modificó el registro"
+    )
 
     class Config:
         from_attributes = True

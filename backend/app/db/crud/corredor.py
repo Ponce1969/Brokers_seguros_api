@@ -14,12 +14,17 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
         result = await db.execute(select(Corredor).where(Corredor.mail == mail))
         return result.scalars().first()
 
-    async def get_by_documento(self, db: AsyncSession, *, documento: str) -> Optional[Corredor]:
-        result = await db.execute(select(Corredor).where(Corredor.documento == documento))
+    async def get_by_documento(
+        self, db: AsyncSession, *, documento: str
+    ) -> Optional[Corredor]:
+        result = await db.execute(
+            select(Corredor).where(Corredor.documento == documento)
+        )
         return result.scalars().first()
 
     async def create(self, db: AsyncSession, *, obj_in: CorredorCreate) -> Corredor:
         db_obj = Corredor(
+            numero=obj_in.numero,
             nombres=obj_in.nombres,
             apellidos=obj_in.apellidos,
             documento=obj_in.documento,
@@ -31,7 +36,7 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
             observaciones=obj_in.observaciones,
             matricula=obj_in.matricula,
             especializacion=obj_in.especializacion,
-            fecha_alta=obj_in.fecha_alta
+            fecha_alta=obj_in.fecha_alta,
         )
         db.add(db_obj)
         await db.commit()

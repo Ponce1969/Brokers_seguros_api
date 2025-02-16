@@ -1,12 +1,15 @@
 """
 Contenedor de Inyección de Dependencias para la aplicación
 """
+
 from typing import Dict, Type, Any
 from dataclasses import dataclass, field
+
 
 @dataclass
 class ContenedorDI:
     """Contenedor para inyección de dependencias"""
+
     _instancias: Dict[Type, Any] = field(default_factory=dict)
     _fabricas: Dict[Type, Any] = field(default_factory=dict)
 
@@ -22,13 +25,14 @@ class ContenedorDI:
         """Resuelve una instancia para un tipo"""
         if tipo_interfaz in self._instancias:
             return self._instancias[tipo_interfaz]
-        
+
         if tipo_interfaz in self._fabricas:
             instancia = self._fabricas[tipo_interfaz]()
             self._instancias[tipo_interfaz] = instancia
             return instancia
-        
+
         raise Exception(f"No se encontró registro para {tipo_interfaz}")
+
 
 # Instancia global del contenedor
 contenedor = ContenedorDI()

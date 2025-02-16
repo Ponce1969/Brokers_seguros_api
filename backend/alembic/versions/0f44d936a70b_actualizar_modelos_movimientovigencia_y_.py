@@ -5,15 +5,12 @@ Revises: initial
 Create Date: 2025-02-09 05:25:45.241654
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
-import sqlalchemy as sa
-
-
 # revision identifiers, used by Alembic.
-revision: str = '0f44d936a70b'
-down_revision: Union[str, None] = 'initial'
+revision: str = "0f44d936a70b"
+down_revision: Union[str, None] = "initial"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

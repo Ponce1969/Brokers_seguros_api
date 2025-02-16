@@ -1,23 +1,26 @@
 """
 ViewModel base que implementa funcionalidad común para todos los ViewModels
 """
+
 from PyQt6.QtCore import QObject, pyqtSignal
 from typing import Generic, TypeVar, List, Optional
 import logging
 from frontend.gui.repositories.base_repository import RepositorioBase
 from frontend.gui.core.excepciones import ErrorAPI, ErrorValidacion
 
-T = TypeVar('T')
+T = TypeVar("T")
 logger = logging.getLogger(__name__)
+
 
 class ViewModelBase(QObject, Generic[T]):
     """
     Clase base para todos los ViewModels que proporciona funcionalidad común
     """
+
     # Señales para notificar cambios en los datos
     datos_actualizados = pyqtSignal()  # Cuando los datos cambian
-    error_ocurrido = pyqtSignal(str)   # Cuando ocurre un error
-    cargando = pyqtSignal(bool)        # Cuando se está cargando datos
+    error_ocurrido = pyqtSignal(str)  # Cuando ocurre un error
+    cargando = pyqtSignal(bool)  # Cuando se está cargando datos
 
     def __init__(self, repositorio: RepositorioBase[T]):
         super().__init__()
@@ -108,8 +111,9 @@ class ViewModelBase(QObject, Generic[T]):
         try:
             self._establecer_cargando(True)
             if self._repositorio.eliminar(id):
-                self._items = [item for item in self._items 
-                             if getattr(item, 'id', None) != id]
+                self._items = [
+                    item for item in self._items if getattr(item, "id", None) != id
+                ]
                 self._limpiar_error()
                 self.datos_actualizados.emit()
                 logger.info(f"Item eliminado: ID {id}")
@@ -140,6 +144,6 @@ class ViewModelBase(QObject, Generic[T]):
     def _actualizar_item_en_lista(self, item_actualizado: T, lista: List[T]) -> None:
         """Actualiza un item en la lista especificada"""
         for i, item in enumerate(lista):
-            if getattr(item, 'id', None) == getattr(item_actualizado, 'id', None):
+            if getattr(item, "id", None) == getattr(item_actualizado, "id", None):
                 lista[i] = item_actualizado
                 break

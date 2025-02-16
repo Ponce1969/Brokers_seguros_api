@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
 
@@ -24,9 +25,7 @@ class Moneda(Base):
     esta_activa = Column(Boolean, default=True)  # Indica si está activa
     fecha_creacion = Column(DateTime(timezone=True), default=get_utc_now)
     fecha_actualizacion = Column(
-        DateTime(timezone=True), 
-        default=get_utc_now, 
-        onupdate=get_utc_now
+        DateTime(timezone=True), default=get_utc_now, onupdate=get_utc_now
     )
 
     # Relación con movimientos

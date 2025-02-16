@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import PostgresDsn, SecretStr
+from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings
 
 
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
-        "extra": "allow"  # Permitir campos extra en la configuración
+        "extra": "allow",  # Permitir campos extra en la configuración
     }
 
 

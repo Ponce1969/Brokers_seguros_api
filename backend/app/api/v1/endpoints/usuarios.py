@@ -3,7 +3,7 @@ from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_active_user, get_current_active_superuser
+from app.api.deps import get_current_active_user
 from app.core.permissions import require_permissions
 from app.core.roles import Role
 from app.db.crud.usuario import usuario_crud
@@ -20,7 +20,7 @@ async def get_usuarios(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_active_user),
 ) -> Any:
     """
     Recuperar usuarios.
@@ -43,16 +43,16 @@ async def create_usuario(
     if usuario_in.role == Role.ADMIN and current_user.role != Role.ADMIN:
         raise HTTPException(
             status_code=403,
-            detail="Solo los administradores pueden crear otros administradores"
+            detail="Solo los administradores pueden crear otros administradores",
         )
-    
+
     # Si es un usuario corredor, validar el número de corredor
     if usuario_in.role == Role.CORREDOR and not usuario_in.corredor_numero:
         raise HTTPException(
             status_code=400,
-            detail="El número de corredor es requerido para usuarios corredores"
+            detail="El número de corredor es requerido para usuarios corredores",
         )
-    
+
     return await usuario_crud.create(db, obj_in=usuario_in)
 
 
@@ -61,17 +61,14 @@ async def create_usuario(
 async def get_usuario(
     usuario_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_active_user),
 ) -> Any:
     """
     Obtener usuario por ID.
     """
     usuario = await usuario_crud.get(db, id=usuario_id)
     if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return usuario
 
 
@@ -89,25 +86,22 @@ async def update_usuario(
     """
     usuario = await usuario_crud.get(db, id=usuario_id)
     if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
-    
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
     # Solo los administradores pueden modificar otros administradores
     if usuario.role == Role.ADMIN and current_user.role != Role.ADMIN:
         raise HTTPException(
             status_code=403,
-            detail="Solo los administradores pueden modificar otros administradores"
+            detail="Solo los administradores pueden modificar otros administradores",
         )
-    
+
     # Si se está actualizando a un usuario corredor, validar el número de corredor
     if usuario_in.role == Role.CORREDOR and not usuario_in.corredor_numero:
         raise HTTPException(
             status_code=400,
-            detail="El número de corredor es requerido para usuarios corredores"
+            detail="El número de corredor es requerido para usuarios corredores",
         )
-    
+
     return await usuario_crud.update(db, db_obj=usuario, obj_in=usuario_in)
 
 
@@ -124,16 +118,13 @@ async def delete_usuario(
     """
     usuario = await usuario_crud.get(db, id=usuario_id)
     if not usuario:
-        raise HTTPException(
-            status_code=404,
-            detail="Usuario no encontrado"
-        )
-    
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
     # Solo los administradores pueden eliminar otros administradores
     if usuario.role == Role.ADMIN and current_user.role != Role.ADMIN:
         raise HTTPException(
             status_code=403,
-            detail="Solo los administradores pueden eliminar otros administradores"
+            detail="Solo los administradores pueden eliminar otros administradores",
         )
-    
+
     return await usuario_crud.remove(db, id=usuario_id)

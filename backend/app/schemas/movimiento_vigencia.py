@@ -1,18 +1,14 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional, List, Any
-from pydantic import UUID4, BaseModel, Field, field_validator
+from typing import Literal, Optional
 
+from pydantic import UUID4, BaseModel, Field, field_validator
 
 # Definición de constantes
 ESTADOS_POLIZA = Literal["activa", "vencida", "cancelada", "renovada"]
 FORMAS_PAGO = Literal["contado", "financiado", "tarjeta", "transferencia"]
 TIPOS_ENDOSO = Literal[
-    "inclusión",
-    "exclusión",
-    "modificación",
-    "cancelación",
-    "renovación"
+    "inclusión", "exclusión", "modificación", "cancelación", "renovación"
 ]
 
 
@@ -24,92 +20,45 @@ def to_lower(s: str) -> str:
 class MovimientoVigenciaBase(BaseModel):
     """Modelo base para movimientos de vigencia con validaciones y documentación."""
 
-    cliente_id: UUID4 = Field(
-        ..., 
-        description="ID del cliente asociado al movimiento"
-    )
+    cliente_id: UUID4 = Field(..., description="ID del cliente asociado al movimiento")
     corredor_id: Optional[int] = Field(
-        None, 
-        description="ID del corredor que gestiona la póliza"
+        None, description="ID del corredor que gestiona la póliza"
     )
-    tipo_seguro_id: int = Field(
-        ..., 
-        description="ID del tipo de seguro"
-    )
+    tipo_seguro_id: int = Field(..., description="ID del tipo de seguro")
     aseguradora_id: int = Field(
-        ..., 
-        description="ID de la aseguradora que emite la póliza"
+        ..., description="ID de la aseguradora que emite la póliza"
     )
     carpeta: Optional[str] = Field(
-        None, 
-        description="Número de carpeta interno",
-        max_length=50
+        None, description="Número de carpeta interno", max_length=50
     )
     numero_poliza: str = Field(
-        ..., 
-        description="Número de póliza",
-        min_length=5,
-        max_length=50
+        ..., description="Número de póliza", min_length=5, max_length=50
     )
-    endoso: Optional[str] = Field(
-        None, 
-        description="Número de endoso",
-        max_length=50
-    )
-    fecha_inicio: date = Field(
-        ..., 
-        description="Fecha de inicio de la vigencia"
-    )
+    endoso: Optional[str] = Field(None, description="Número de endoso", max_length=50)
+    fecha_inicio: date = Field(..., description="Fecha de inicio de la vigencia")
     fecha_vencimiento: date = Field(
-        ..., 
-        description="Fecha de vencimiento de la vigencia"
+        ..., description="Fecha de vencimiento de la vigencia"
     )
     fecha_emision: Optional[date] = Field(
-        None, 
-        description="Fecha de emisión de la póliza"
+        None, description="Fecha de emisión de la póliza"
     )
     estado_poliza: ESTADOS_POLIZA = Field(
-        default="activa", 
-        description="Estado actual de la póliza"
+        default="activa", description="Estado actual de la póliza"
     )
     forma_pago: Optional[FORMAS_PAGO] = Field(
-        None, 
-        description="Forma de pago de la póliza"
+        None, description="Forma de pago de la póliza"
     )
     tipo_endoso: Optional[TIPOS_ENDOSO] = Field(
-        None, 
-        description="Tipo de endoso si aplica"
+        None, description="Tipo de endoso si aplica"
     )
-    moneda_id: Optional[int] = Field(
-        None, 
-        description="ID de la moneda"
-    )
-    suma_asegurada: Decimal = Field(
-        ..., 
-        ge=0, 
-        description="Monto asegurado"
-    )
-    prima: Decimal = Field(
-        ..., 
-        ge=0, 
-        description="Prima del seguro"
-    )
+    moneda_id: Optional[int] = Field(None, description="ID de la moneda")
+    suma_asegurada: Decimal = Field(..., ge=0, description="Monto asegurado")
+    prima: Decimal = Field(..., ge=0, description="Prima del seguro")
     comision: Optional[Decimal] = Field(
-        None, 
-        ge=0, 
-        le=100, 
-        description="Porcentaje de comisión"
+        None, ge=0, le=100, description="Porcentaje de comisión"
     )
-    cuotas: Optional[int] = Field(
-        None, 
-        ge=1, 
-        le=36, 
-        description="Número de cuotas"
-    )
-    observaciones: Optional[str] = Field(
-        None, 
-        description="Observaciones adicionales"
-    )
+    cuotas: Optional[int] = Field(None, ge=1, le=36, description="Número de cuotas")
+    observaciones: Optional[str] = Field(None, description="Observaciones adicionales")
 
     @field_validator("fecha_vencimiento")
     def validar_fecha_vencimiento(cls, v, values):
@@ -119,7 +68,7 @@ class MovimientoVigenciaBase(BaseModel):
             )
         return v
 
-    @field_validator('carpeta', 'numero_poliza', 'endoso')
+    @field_validator("carpeta", "numero_poliza", "endoso")
     def strip_whitespace(cls, v):
         if isinstance(v, str):
             return v.strip()
@@ -132,10 +81,7 @@ class MovimientoVigenciaBase(BaseModel):
 class MovimientoVigenciaCreate(MovimientoVigenciaBase):
     """Modelo para crear un nuevo movimiento de vigencia."""
 
-    creado_por_id: int = Field(
-        ..., 
-        description="ID del usuario que crea el registro"
-    )
+    creado_por_id: int = Field(..., description="ID del usuario que crea el registro")
 
 
 class MovimientoVigenciaUpdate(MovimientoVigenciaBase):
@@ -161,8 +107,7 @@ class MovimientoVigenciaUpdate(MovimientoVigenciaBase):
     cuotas: Optional[int] = Field(None, ge=1, le=36)
     observaciones: Optional[str] = None
     modificado_por_id: int = Field(
-        ..., 
-        description="ID del usuario que modifica el registro"
+        ..., description="ID del usuario que modifica el registro"
     )
 
 
@@ -170,21 +115,13 @@ class MovimientoVigencia(MovimientoVigenciaBase):
     """Modelo completo de movimiento de vigencia con campos adicionales."""
 
     id: int
-    fecha_creacion: datetime = Field(
-        ..., 
-        description="Fecha de creación del registro"
-    )
+    fecha_creacion: datetime = Field(..., description="Fecha de creación del registro")
     fecha_actualizacion: Optional[datetime] = Field(
-        None, 
-        description="Última fecha de actualización"
+        None, description="Última fecha de actualización"
     )
-    creado_por_id: int = Field(
-        ..., 
-        description="ID del usuario que creó el registro"
-    )
+    creado_por_id: int = Field(..., description="ID del usuario que creó el registro")
     modificado_por_id: Optional[int] = Field(
-        None, 
-        description="ID del usuario que modificó el registro"
+        None, description="ID del usuario que modificó el registro"
     )
 
     class Config:

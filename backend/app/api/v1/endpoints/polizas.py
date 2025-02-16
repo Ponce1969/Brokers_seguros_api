@@ -1,18 +1,19 @@
 # Importaciones estándar
 import logging
 from datetime import date, timedelta
+from io import BytesIO
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
-from io import BytesIO
+
+import openpyxl
 
 # Importaciones de terceros
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-import openpyxl
+from pydantic import BaseModel
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Importaciones locales
 from app.api.deps import get_current_active_user
@@ -40,15 +41,18 @@ HTTP_403_FORBIDDEN = 403
 
 router = APIRouter()
 
+
 # Modelos Pydantic para nuevas funcionalidades
 class ConfiguracionAlertas(BaseModel):
     notificar_por_email: bool = True
     notificar_por_sms: bool = False
     dias_antes_vencimiento: int = 7
 
+
 class PlantillaNotificacion(BaseModel):
     asunto: str
     mensaje: str
+
 
 # Funciones de utilidad
 def validar_rango_fechas(
@@ -62,11 +66,14 @@ def validar_rango_fechas(
         and vencimiento_hasta
         and vencimiento_desde > vencimiento_hasta
     ):
-        logger.error("La fecha 'vencimiento_desde' debe ser anterior a 'vencimiento_hasta'")
+        logger.error(
+            "La fecha 'vencimiento_desde' debe ser anterior a 'vencimiento_hasta'"
+        )
         raise HTTPException(
             status_code=HTTP_400_BAD_REQUEST,
             detail="La fecha 'vencimiento_desde' debe ser anterior a 'vencimiento_hasta'",
         )
+
 
 def aplicar_filtros_por_corredor(
     filters: Dict[str, Union[UUID, int, str, date]], current_user: UsuarioModel
@@ -76,6 +83,7 @@ def aplicar_filtros_por_corredor(
     """
     if current_user.role == "corredor":
         filters["corredor_id"] = current_user.corredor_numero
+
 
 def validar_permisos_corredor(
     poliza: Any, current_user: UsuarioModel, accion: str
@@ -93,6 +101,7 @@ def validar_permisos_corredor(
             detail=f"No tiene permiso para {accion} esta póliza",
         )
 
+
 # Funciones para notificaciones
 async def enviar_email(destinatario: str, asunto: str, mensaje: str) -> None:
     """
@@ -100,17 +109,21 @@ async def enviar_email(destinatario: str, asunto: str, mensaje: str) -> None:
     """
     logger.info(f"Enviando email a {destinatario}: {asunto} - {mensaje}")
 
+
 async def enviar_sms(destinatario: str, mensaje: str) -> None:
     """
     Simula el envío de un SMS.
     """
     logger.info(f"Enviando SMS a {destinatario}: {mensaje}")
 
+
 async def enviar_notificacion(poliza: Poliza, usuario: UsuarioModel) -> None:
     """
     Envía notificaciones por email y SMS sobre el vencimiento de una póliza.
     """
-    plantilla = obtener_plantilla_notificacion()  # Obtén la plantilla desde la base de datos
+    plantilla = (
+        obtener_plantilla_notificacion()
+    )  # Obtén la plantilla desde la base de datos
     mensaje = plantilla.mensaje.format(
         numero_poliza=poliza.numero_poliza,
         fecha_vencimiento=poliza.fecha_vencimiento,
@@ -129,6 +142,7 @@ async def enviar_notificacion(poliza: Poliza, usuario: UsuarioModel) -> None:
             mensaje=mensaje,
         )
 
+
 def obtener_plantilla_notificacion() -> PlantillaNotificacion:
     """
     Obtiene la plantilla de notificación desde la base de datos.
@@ -139,13 +153,18 @@ def obtener_plantilla_notificacion() -> PlantillaNotificacion:
         mensaje="La póliza {numero_poliza} vence el {fecha_vencimiento}.",
     )
 
+
 # Endpoints existentes (sin cambios)
 @router.get("/estadisticas/", response_model=EstadisticasResponse)
 @require_permissions(["polizas_ver"])
 async def get_estadisticas_polizas(
     db: AsyncSession = Depends(get_db),
-    estado: Optional[str] = Query("activa", description="Estado de las pólizas a incluir"),
-    fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para filtrar"),
+    estado: Optional[str] = Query(
+        "activa", description="Estado de las pólizas a incluir"
+    ),
+    fecha_inicio: Optional[date] = Query(
+        None, description="Fecha de inicio para filtrar"
+    ),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin para filtrar"),
     current_user: UsuarioModel = Depends(get_current_active_user),
 ) -> EstadisticasResponse:
@@ -182,6 +201,7 @@ async def get_estadisticas_polizas(
         por_duracion=estadisticas_por_duracion,
     )
 
+
 # Endpoints nuevos para notificaciones y alertas
 @router.get("/notificar-vencimientos/")
 @require_permissions(["polizas_ver"])
@@ -217,6 +237,7 @@ async def notificar_vencimientos(
 
     return {"message": "Notificaciones enviadas correctamente"}
 
+
 @router.post("/programar-verificacion-vencimientos/")
 @require_permissions(["polizas_ver"])
 async def programar_verificacion_vencimientos(
@@ -231,6 +252,7 @@ async def programar_verificacion_vencimientos(
     background_tasks.add_task(notificar_vencimientos, db, dias_antes, current_user)
     return {"message": "Tarea programada correctamente"}
 
+
 @router.put("/configurar-alertas/", response_model=ConfiguracionAlertas)
 @require_permissions(["polizas_ver"])
 async def configurar_alertas(
@@ -244,6 +266,7 @@ async def configurar_alertas(
     current_user.configuracion_alertas = configuracion
     return configuracion
 
+
 @router.post("/plantillas-notificacion/", response_model=PlantillaNotificacion)
 @require_permissions(["polizas_ver"])
 async def crear_plantilla_notificacion(
@@ -255,6 +278,7 @@ async def crear_plantilla_notificacion(
     """
     # Aquí puedes guardar la plantilla en la base de datos
     return plantilla
+
 
 # Endpoints existentes (sin cambios)
 @router.get("/", response_model=List[Poliza])
@@ -272,7 +296,10 @@ async def get_polizas(
     vencimiento_hasta: Optional[date] = None,
     incluir_vencidas: bool = Query(False, description="Incluir pólizas ya vencidas"),
     proximo_vencimiento: Optional[int] = Query(
-        None, ge=1, le=365, description="Buscar pólizas que vencen en los próximos N días"
+        None,
+        ge=1,
+        le=365,
+        description="Buscar pólizas que vencen en los próximos N días",
     ),
     numero_poliza: Optional[str] = None,
     tipo_seguro_id: Optional[int] = None,
@@ -281,11 +308,18 @@ async def get_polizas(
     suma_asegurada_max: Optional[float] = None,
     prima_min: Optional[float] = None,
     prima_max: Optional[float] = None,
-    cliente_nombre: Optional[str] = Query(None, description="Buscar por nombre del cliente"),
-    cliente_apellido: Optional[str] = Query(None, description="Buscar por apellido del cliente"),
-    tipo_duracion: Optional[TipoDuracion] = Query(None, description="Filtrar por tipo de duración"),
+    cliente_nombre: Optional[str] = Query(
+        None, description="Buscar por nombre del cliente"
+    ),
+    cliente_apellido: Optional[str] = Query(
+        None, description="Buscar por apellido del cliente"
+    ),
+    tipo_duracion: Optional[TipoDuracion] = Query(
+        None, description="Filtrar por tipo de duración"
+    ),
     ordenar_por: Optional[str] = Query(
-        None, description="Campo por el cual ordenar (ej: fecha_inicio, suma_asegurada, nombres, apellidos)"
+        None,
+        description="Campo por el cual ordenar (ej: fecha_inicio, suma_asegurada, nombres, apellidos)",
     ),
     orden: Optional[str] = Query("asc", regex="^(asc|desc)$"),
     current_user: UsuarioModel = Depends(get_current_active_user),
@@ -335,6 +369,7 @@ async def get_polizas(
 
     return polizas
 
+
 # Resto de endpoints existentes (sin cambios)
 @router.post("/", response_model=Poliza)
 @require_permissions(["polizas_crear"])
@@ -369,6 +404,7 @@ async def create_poliza(
 
     return await poliza_crud.create(db, obj_in=poliza_in)
 
+
 @router.get("/{poliza_id}", response_model=PolizaDetalle)
 @require_permissions(["polizas_ver"])
 async def get_poliza(
@@ -386,6 +422,7 @@ async def get_poliza(
 
     validar_permisos_corredor(poliza, current_user, "ver")
     return poliza
+
 
 @router.put("/{poliza_id}", response_model=Poliza)
 @require_permissions(["polizas_editar"])
@@ -407,6 +444,7 @@ async def update_poliza(
     validar_permisos_corredor(poliza, current_user, "modificar")
     return await poliza_crud.update(db, db_obj=poliza, obj_in=poliza_in)
 
+
 @router.delete("/{poliza_id}", response_model=Poliza)
 @require_permissions(["polizas_eliminar"])
 async def delete_poliza(
@@ -426,14 +464,19 @@ async def delete_poliza(
     validar_permisos_corredor(poliza, current_user, "eliminar")
     return await poliza_crud.delete(db, id=poliza_id)
 
+
 @router.get("/exportar/excel/")
 @require_permissions(["polizas_ver"])
 async def exportar_polizas_excel(
     db: AsyncSession = Depends(get_db),
-    estado: Optional[str] = Query("activa", description="Estado de las pólizas a incluir"),
-    fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para filtrar"),
+    estado: Optional[str] = Query(
+        "activa", description="Estado de las pólizas a incluir"
+    ),
+    fecha_inicio: Optional[date] = Query(
+        None, description="Fecha de inicio para filtrar"
+    ),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin para filtrar"),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_active_user),
 ) -> StreamingResponse:
     """
     Exportar pólizas a un archivo Excel.
@@ -449,34 +492,47 @@ async def exportar_polizas_excel(
     ws.title = "Pólizas"
 
     # Agregar encabezados
-    ws.append(["ID", "Número de Póliza", "Cliente", "Estado", "Suma Asegurada", "Prima"])
+    ws.append(
+        ["ID", "Número de Póliza", "Cliente", "Estado", "Suma Asegurada", "Prima"]
+    )
 
     # Agregar datos de pólizas
     for poliza in polizas:
-        ws.append([
-            poliza.id,
-            poliza.numero_poliza,
-            poliza.cliente_rel.nombres + " " + poliza.cliente_rel.apellidos,
-            poliza.estado_poliza,
-            poliza.suma_asegurada,
-            poliza.prima
-        ])
+        ws.append(
+            [
+                poliza.id,
+                poliza.numero_poliza,
+                poliza.cliente_rel.nombres + " " + poliza.cliente_rel.apellidos,
+                poliza.estado_poliza,
+                poliza.suma_asegurada,
+                poliza.prima,
+            ]
+        )
 
     # Guardar el archivo en memoria
     output = BytesIO()
     wb.save(output)
     output.seek(0)
 
-    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=polizas.xlsx"})
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=polizas.xlsx"},
+    )
+
 
 @router.get("/exportar/pdf/")
 @require_permissions(["polizas_ver"])
 async def exportar_polizas_pdf(
     db: AsyncSession = Depends(get_db),
-    estado: Optional[str] = Query("activa", description="Estado de las pólizas a incluir"),
-    fecha_inicio: Optional[date] = Query(None, description="Fecha de inicio para filtrar"),
+    estado: Optional[str] = Query(
+        "activa", description="Estado de las pólizas a incluir"
+    ),
+    fecha_inicio: Optional[date] = Query(
+        None, description="Fecha de inicio para filtrar"
+    ),
     fecha_fin: Optional[date] = Query(None, description="Fecha fin para filtrar"),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_active_user),
 ) -> StreamingResponse:
     """
     Exportar pólizas a un archivo PDF.
@@ -504,7 +560,9 @@ async def exportar_polizas_pdf(
     for poliza in polizas:
         p.drawString(100, y, str(poliza.id))
         p.drawString(200, y, poliza.numero_poliza)
-        p.drawString(300, y, f"{poliza.cliente_rel.nombres} {poliza.cliente_rel.apellidos}")
+        p.drawString(
+            300, y, f"{poliza.cliente_rel.nombres} {poliza.cliente_rel.apellidos}"
+        )
         p.drawString(400, y, poliza.estado_poliza)
         p.drawString(500, y, str(poliza.suma_asegurada))
         p.drawString(600, y, str(poliza.prima))
@@ -514,4 +572,8 @@ async def exportar_polizas_pdf(
     p.save()
     output.seek(0)
 
-    return StreamingResponse(output, media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=polizas.pdf"})
+    return StreamingResponse(
+        output,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=polizas.pdf"},
+    )

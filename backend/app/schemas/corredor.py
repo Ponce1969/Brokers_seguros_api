@@ -20,6 +20,7 @@ class CorredorBase(BaseModel):
 
 class CorredorCreate(CorredorBase):
     fecha_alta: date
+    numero: int
 
 
 class CorredorUpdate(CorredorBase):
