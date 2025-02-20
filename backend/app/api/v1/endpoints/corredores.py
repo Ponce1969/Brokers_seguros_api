@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.crud.corredor import corredor_crud
 from app.db.database import get_db
 from app.schemas.corredor import Corredor, CorredorCreate, CorredorUpdate
+from app.core.security import get_password_hash
 
 router = APIRouter()
 
@@ -29,6 +30,35 @@ async def create_corredor(
     Crear nuevo corredor.
     """
     corredor = await corredor_crud.create(db, obj_in=corredor_in)
+    return corredor
+
+
+@router.post("/admin", response_model=Corredor)
+async def create_admin(
+    *, db: AsyncSession = Depends(get_db), corredor_in: CorredorCreate
+) -> Any:
+    """
+    Crear corredor administrador inicial.
+    Solo funciona si no hay corredores en el sistema.
+    """
+    # Verificar si ya existen corredores
+    existing_corredores = await corredor_crud.get_multi(db, limit=1)
+    if existing_corredores:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede crear el administrador inicial porque ya existen corredores en el sistema"
+        )
+
+    # Asegurarse de que el rol sea admin
+    corredor_data = corredor_in.dict()
+    corredor_data["role"] = "admin"
+    corredor_data["is_active"] = True
+    
+    # Asignar número de corredor inicial
+    corredor_data["numero"] = 1000  # Número inicial para el primer corredor
+
+    # Crear el corredor administrador
+    corredor = await corredor_crud.create(db, obj_in=CorredorCreate(**corredor_data))
     return corredor
 
 

@@ -5,8 +5,11 @@ Servicio para manejar las comunicaciones con la API REST
 import aiohttp
 import logging
 import json
+import asyncio
 from typing import Any, Dict, Optional
-from frontend.gui.core.excepciones import ErrorAPI
+from datetime import datetime, timedelta
+from tenacity import retry, stop_after_attempt, wait_exponential
+from ..core.excepciones import ErrorAPI
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -18,158 +21,226 @@ class ServicioAPI:
     Clase para manejar todas las comunicaciones con la API REST
     """
 
-    def __init__(self, url_base: str):
+    def __init__(
+        self, 
+        url_base: str, 
+        timeout: int = 30,
+        cache_duration: int = 5,
+        session: Optional[aiohttp.ClientSession] = None
+    ):
+        """
+        Inicializa el servicio API
+        
+        Args:
+            url_base: URL base para todas las peticiones
+            timeout: Tiempo máximo de espera para peticiones en segundos
+            cache_duration: Duración del caché en minutos
+            session: Sesión aiohttp opcional para reutilizar
+        """
         self.url_base = url_base.rstrip("/")  # Remover slash final si existe
         self._token: Optional[str] = None
-        self._session: Optional[aiohttp.ClientSession] = None
+        self.timeout = aiohttp.ClientTimeout(total=timeout)
+        
+        # La sesión se creará cuando se necesite
+        self._session = None
+        
+        # Configuración de caché
+        self.cache = {}
+        self.cache_duration = timedelta(minutes=cache_duration)
+        
+        # Métricas
+        self.metricas = {
+            "total_requests": 0,
+            "errores": 0,
+            "tiempo_promedio": 0
+        }
 
-    @property
-    def headers(self) -> Dict[str, str]:
-        """Construye los headers para las peticiones"""
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """
+        Obtiene una sesión HTTP, creándola si es necesario
+        
+        Returns:
+            aiohttp.ClientSession: Sesión HTTP activa
+        """
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=self.timeout)
+        return self._session
+
+    def get_headers(self, custom_headers: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+        """
+        Construye los headers para las peticiones
+        
+        Args:
+            custom_headers: Headers adicionales a incluir
+            
+        Returns:
+            Dict[str, str]: Headers combinados
+        """
         headers = {"Content-Type": "application/json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
+        if custom_headers:
+            headers.update(custom_headers)
         return headers
 
     def establecer_token(self, token: str) -> None:
         """Establece el token de autenticación"""
         self._token = token
-        logger.info("Token de autenticación establecido")
+        logger.info("🔑 Token de autenticación establecido")
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """Obtiene o crea una sesión de aiohttp"""
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
+    def _get_from_cache(self, key: str) -> Optional[Dict]:
+        """Obtiene datos del caché si están disponibles y válidos"""
+        if key in self.cache:
+            data, timestamp = self.cache[key]
+            if datetime.now() - timestamp < self.cache_duration:
+                logger.debug(f"📦 Datos recuperados del caché para: {key}")
+                return data
+        return None
 
-    async def _manejar_respuesta(
-        self, response: aiohttp.ClientResponse, operacion: str
+    async def _validar_respuesta(self, data: Dict) -> bool:
+        """Valida la estructura básica de la respuesta"""
+        if not isinstance(data, dict):
+            return False
+        return True  # Simplificamos la validación ya que la estructura puede variar
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    async def request(
+        self, 
+        metodo: str, 
+        endpoint: str, 
+        datos: Optional[Any] = None,
+        headers: Optional[Dict[str, str]] = None
     ) -> Any:
-        """Maneja la respuesta de la API y registra información relevante"""
-        try:
-            logger.info(f"=== Manejando respuesta de {operacion} ===")
-            logger.info(f"Código de estado: {response.status}")
-            logger.info(f"Headers de respuesta: {dict(response.headers)}")
-
-            content_type = response.headers.get("Content-Type", "No especificado")
-            logger.info(f"Content-Type: {content_type}")
-
-            if response.status >= 400:
-                logger.error(f"=== Error en respuesta de {operacion} ===")
-                texto = await response.text()
-                logger.error(f"Respuesta texto: {texto}")
-
-                try:
-                    detalle = await response.json()
-                    logger.error(
-                        f"Respuesta JSON: {json.dumps(detalle, indent=2, ensure_ascii=False)}"
-                    )
-                    mensaje_error = f"Error HTTP en {operacion}: {response.status} - {json.dumps(detalle, indent=2)}"
-                except ValueError:
-                    logger.error("No se pudo parsear la respuesta como JSON")
-                    mensaje_error = (
-                        f"Error HTTP en {operacion}: {response.status} - {texto}"
-                    )
-
-                raise ErrorAPI(mensaje_error)
-
-            if response.content_length:
-                try:
-                    datos = await response.json()
-                    logger.info("Respuesta recibida (JSON):")
-                    logger.info(json.dumps(datos, indent=2, ensure_ascii=False))
-                    return datos
-                except ValueError as e:
-                    logger.error(f"Error al parsear respuesta JSON: {str(e)}")
-                    texto = await response.text()
-                    logger.error(f"Contenido de respuesta (texto): {texto}")
-                    raise ErrorAPI(
-                        f"Error al procesar respuesta del servidor en {operacion}"
-                    )
-
-            logger.info("Respuesta sin contenido")
-            return None
-
-        except aiohttp.ClientError as e:
-            logger.error(f"=== Error de cliente en {operacion} ===")
-            logger.error(f"Tipo de error: {type(e).__name__}")
-            logger.error(f"Mensaje de error: {str(e)}")
-            raise ErrorAPI(f"Error en la comunicación con el servidor: {str(e)}")
-
-        except Exception as e:
-            logger.error(f"=== Error inesperado en {operacion} ===")
-            logger.error(f"Tipo de error: {type(e).__name__}")
-            logger.error(f"Mensaje de error: {str(e)}")
-            raise ErrorAPI(f"Error inesperado al procesar la respuesta: {str(e)}")
-
-    async def get(self, endpoint: str) -> Any:
-        """Realiza una petición GET"""
+        """
+        Método general para manejar requests HTTP con reintentos automáticos
+        """
         url = f"{self.url_base}/{endpoint}"
-        session = await self._get_session()
-        async with session.get(url, headers=self.headers) as response:
-            return await self._manejar_respuesta(response, f"GET {endpoint}")
+        inicio = datetime.now()
+        self.metricas["total_requests"] += 1
 
-    async def post(self, endpoint: str, datos: Dict) -> Any:
-        """Realiza una petición POST"""
-        url = f"{self.url_base}/{endpoint}"
         try:
-            logger.info(f"=== Iniciando petición POST a {endpoint} ===")
-            logger.info(f"URL completa: {url}")
-            logger.info(f"Headers: {self.headers}")
-            logger.info("Datos a enviar (sin contraseña):")
-            datos_log = datos.copy()
-            if "password" in datos_log:
-                datos_log["password"] = "********"
-            logger.info(f"{json.dumps(datos_log, indent=2, ensure_ascii=False)}")
-
             session = await self._get_session()
-            async with session.post(url, headers=self.headers, json=datos) as response:
-                logger.info(f"Código de respuesta: {response.status}")
+            request_headers = self.get_headers(headers)
+            
+            # Si los datos son un string y el content-type es form-urlencoded,
+            # enviamos los datos como texto
+            if isinstance(datos, str) and headers and \
+               headers.get("Content-Type") == "application/x-www-form-urlencoded":
+                kwargs = {"data": datos}
+            else:
+                kwargs = {"json": datos} if datos is not None else {}
 
-                if response.status >= 400:
-                    content_type = response.headers.get("Content-Type", "")
-                    logger.error(f"Error en la respuesta. Content-Type: {content_type}")
-
-                    texto = await response.text()
-                    logger.error(f"Respuesta de error (texto): {texto}")
-
-                    try:
-                        json_resp = await response.json()
-                        logger.error(
-                            f"Respuesta de error (JSON): {json.dumps(json_resp, indent=2)}"
-                        )
-                    except ValueError:
-                        logger.error("No se pudo parsear la respuesta como JSON")
-
-                return await self._manejar_respuesta(response, f"POST {endpoint}")
+            async with session.request(
+                metodo, 
+                url, 
+                headers=request_headers,
+                **kwargs
+            ) as response:
+                resultado = await self._manejar_respuesta(response, f"{metodo} {endpoint}")
+                
+                # Actualizar métricas
+                tiempo = (datetime.now() - inicio).total_seconds()
+                self.metricas["tiempo_promedio"] = (
+                    (self.metricas["tiempo_promedio"] * (self.metricas["total_requests"] - 1) + tiempo)
+                    / self.metricas["total_requests"]
+                )
+                
+                return resultado
 
         except aiohttp.ClientError as e:
-            logger.error(f"=== Error de cliente HTTP en POST {endpoint} ===")
-            logger.error(f"Tipo de error: {type(e).__name__}")
-            logger.error(f"Mensaje de error: {str(e)}")
-            raise ErrorAPI(f"Error en la comunicación con el servidor: {str(e)}")
+            self.metricas["errores"] += 1
+            logger.error(f"❌ Error de conexión en {metodo} {endpoint}: {str(e)}")
+            raise ErrorAPI(f"Error en la comunicación con la API: {str(e)}")
+
         except Exception as e:
-            logger.error(f"=== Error inesperado en POST {endpoint} ===")
-            logger.error(f"Tipo de error: {type(e).__name__}")
-            logger.error(f"Mensaje de error: {str(e)}")
-            raise ErrorAPI(f"Error inesperado en la petición: {str(e)}")
+            self.metricas["errores"] += 1
+            logger.error(f"❌ Error inesperado en {metodo} {endpoint}: {str(e)}")
+            raise ErrorAPI(f"Error inesperado al procesar la solicitud: {str(e)}")
 
-    async def put(self, endpoint: str, datos: Dict) -> Any:
-        """Realiza una petición PUT"""
-        url = f"{self.url_base}/{endpoint}"
-        session = await self._get_session()
-        async with session.put(url, headers=self.headers, json=datos) as response:
-            return await self._manejar_respuesta(response, f"PUT {endpoint}")
+    async def _manejar_respuesta(self, response: aiohttp.ClientResponse, operacion: str) -> Any:
+        """Maneja la respuesta de la API y errores"""
+        logger.info(f"📡 {operacion} - Código de estado: {response.status}")
 
-    async def delete(self, endpoint: str) -> bool:
-        """Realiza una petición DELETE"""
-        url = f"{self.url_base}/{endpoint}"
-        session = await self._get_session()
-        async with session.delete(url, headers=self.headers) as response:
-            await self._manejar_respuesta(response, f"DELETE {endpoint}")
-            return response.status == 204
+        try:
+            if response.status >= 400:
+                error_text = await response.text()
+                logger.error(f"❌ Error en {operacion}: {error_text}")
+
+                try:
+                    error_json = await response.json()
+                    raise ErrorAPI(f"Error en {operacion}: {json.dumps(error_json, indent=2)}")
+                except ValueError:
+                    raise ErrorAPI(f"Error en {operacion}: {error_text}")
+
+            if response.content_length and response.content_length > 0:
+                data = await response.json()
+                return data
+
+            return None  # Devuelve None si no hay contenido en la respuesta
+
+        except aiohttp.ClientResponseError as e:
+            logger.error(f"❌ Error HTTP en {operacion}: {e.status} - {e.message}")
+            raise ErrorAPI(f"Error HTTP en {operacion}: {e.status} - {e.message}")
+
+        except json.JSONDecodeError:
+            error_text = await response.text()
+            logger.error(f"❌ No se pudo parsear la respuesta en {operacion}: {error_text}")
+            raise ErrorAPI(f"Respuesta no válida en {operacion}")
+
+    async def get(self, endpoint: str, headers: Optional[Dict[str, str]] = None) -> Any:
+        """Realiza una petición GET con soporte de caché"""
+        cache_key = f"GET:{endpoint}"
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data:
+            return cached_data
+            
+        result = await self.request("GET", endpoint, headers=headers)
+        if result is not None:
+            self.cache[cache_key] = (result, datetime.now())
+        return result
+
+    async def post(
+        self, 
+        endpoint: str, 
+        datos: Any = None,
+        headers: Optional[Dict[str, str]] = None
+    ) -> Any:
+        return await self.request("POST", endpoint, datos, headers)
+
+    async def put(
+        self, 
+        endpoint: str, 
+        datos: Any = None,
+        headers: Optional[Dict[str, str]] = None
+    ) -> Any:
+        return await self.request("PUT", endpoint, datos, headers)
+
+    async def delete(
+        self, 
+        endpoint: str,
+        headers: Optional[Dict[str, str]] = None
+    ) -> bool:
+        response = await self.request("DELETE", endpoint, headers=headers)
+        return response is None  # DELETE no devuelve contenido
 
     async def close(self):
         """Cierra la sesión HTTP"""
         if self._session and not self._session.closed:
             await self._session.close()
+            logger.info("🔌 Sesión HTTP cerrada correctamente")
+
+    def get_metricas(self) -> Dict:
+        """Retorna las métricas actuales del servicio"""
+        return {
+            "total_requests": self.metricas["total_requests"],
+            "errores": self.metricas["errores"],
+            "tasa_error": (
+                self.metricas["errores"] / self.metricas["total_requests"]
+                if self.metricas["total_requests"] > 0
+                else 0
+            ),
+            "tiempo_promedio": round(self.metricas["tiempo_promedio"], 3)
+        }

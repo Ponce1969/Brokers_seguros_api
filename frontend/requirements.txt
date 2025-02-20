@@ -11,6 +11,7 @@ attrs>=23.2.0  # Requerido por aiohttp
 frozenlist>=1.4.1  # Requerido por aiohttp
 multidict>=6.0.5  # Requerido por aiohttp
 yarl>=1.9.4  # Requerido por aiohttp
+tenacity>=8.2.3  # Para reintentos automáticos
 
 # Utilidades y herramientas de desarrollo
 black>=25.1.0  # Formateador de código

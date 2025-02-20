@@ -25,6 +25,7 @@ venv/
 ENV/
 env/
 .env
+.venv/
 
 # IDE
 .idea/
@@ -52,5 +53,3 @@ docker-compose.override.yml
 .env.*
 backend/.env
 backend/.env.*
-.venv/
-venv/

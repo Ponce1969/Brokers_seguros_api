@@ -3,7 +3,7 @@ Repositorio para gestionar corredores a través de la API
 """
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 import logging
 from frontend.gui.repositories.base_repository import RepositorioBase
 from frontend.gui.models.corredor import Corredor
@@ -14,41 +14,31 @@ logger = logging.getLogger(__name__)
 
 
 class RepositorioCorredor(RepositorioBase[Corredor]):
-    """
-    Implementación del repositorio de corredores que se comunica con la API
-    """
+    """Implementación del repositorio de corredores"""
 
     def __init__(self, servicio_api: ServicioAPI):
         self.servicio_api = servicio_api
 
     def _adaptar_corredor_api(self, datos_api: dict) -> dict:
-        """Adapta los datos de la API al formato esperado por el modelo Corredor"""
+        """Adapta los datos de la API al formato del modelo"""
         try:
-            # Convertir strings de fecha a objetos datetime si existen
-            campos_fecha = ["fecha_alta", "fecha_baja"]
-            for campo in campos_fecha:
-                valor = datos_api.get(campo)
-                if valor and isinstance(valor, str):
-                    datos_api[campo] = datetime.fromisoformat(
-                        valor.replace("Z", "+00:00")
-                    ).date()
+            # Convertir fechas si existen
+            if "fecha_alta" in datos_api and datos_api["fecha_alta"]:
+                datos_api["fecha_alta"] = datetime.strptime(
+                    datos_api["fecha_alta"], "%Y-%m-%d"
+                ).date()
+            if "fecha_baja" in datos_api and datos_api["fecha_baja"]:
+                datos_api["fecha_baja"] = datetime.strptime(
+                    datos_api["fecha_baja"], "%Y-%m-%d"
+                ).date()
 
-            return {
-                "numero": datos_api.get("numero"),
-                "nombres": datos_api.get("nombres", ""),
-                "apellidos": datos_api.get("apellidos", ""),
-                "documento": datos_api.get("documento", ""),
-                "direccion": datos_api.get("direccion", ""),
-                "localidad": datos_api.get("localidad", ""),
-                "telefonos": datos_api.get("telefonos"),
-                "movil": datos_api.get("movil"),
-                "mail": datos_api.get("mail"),
-                "observaciones": datos_api.get("observaciones"),
-                "matricula": datos_api.get("matricula"),
-                "especializacion": datos_api.get("especializacion"),
-                "fecha_alta": datos_api.get("fecha_alta"),
-                "fecha_baja": datos_api.get("fecha_baja"),
-            }
+            # Mapear campos de usuario
+            datos_api["username"] = datos_api.get("username")
+            datos_api["role"] = datos_api.get("role", "corredor")
+            datos_api["is_active"] = datos_api.get("is_active", True)
+            datos_api["comision_porcentaje"] = datos_api.get("comision_porcentaje", 0.0)
+
+            return datos_api
         except Exception as e:
             logger.error(f"Error al adaptar datos de corredor: {str(e)}")
             raise ErrorAPI(f"Error al procesar datos del corredor: {str(e)}")
@@ -68,39 +58,33 @@ class RepositorioCorredor(RepositorioBase[Corredor]):
             raise
 
     async def obtener_por_id(self, id: int) -> Optional[Corredor]:
-        """Obtiene un corredor específico por su ID"""
+        """Obtiene un corredor específico por su ID (número)"""
+        return await self.obtener_por_numero(id)
+
+    async def obtener_por_numero(self, numero: int) -> Optional[Corredor]:
+        """Obtiene un corredor específico por su número"""
         try:
-            respuesta = await self.servicio_api.get(f"corredores/{id}")
+            respuesta = await self.servicio_api.get(f"corredores/{numero}")
             if respuesta:
                 corredor = Corredor(**self._adaptar_corredor_api(respuesta))
                 logger.info(f"Corredor obtenido: {corredor.numero}")
                 return corredor
             return None
         except Exception as e:
-            logger.error(f"Error al obtener corredor {id}: {str(e)}")
+            logger.error(f"Error al obtener corredor {numero}: {str(e)}")
             raise
 
-    async def crear(self, corredor: Corredor) -> Corredor:
+    async def crear(self, corredor: Corredor, es_admin: bool = False) -> Corredor:
         """Crea un nuevo corredor"""
         try:
-            datos = {
-                "numero": corredor.numero,
-                "nombres": corredor.nombres,
-                "apellidos": corredor.apellidos,
-                "documento": corredor.documento,
-                "direccion": corredor.direccion,
-                "localidad": corredor.localidad,
-                "telefonos": corredor.telefonos,
-                "movil": corredor.movil,
-                "mail": corredor.mail,
-                "observaciones": corredor.observaciones,
-                "matricula": corredor.matricula,
-                "especializacion": corredor.especializacion,
-                "fecha_alta": corredor.fecha_alta.isoformat() if corredor.fecha_alta else None,
-            }
+            datos = corredor.to_dict()
+            # Asegurar que la fecha de alta sea hoy si no se proporciona
+            if not datos.get("fecha_alta"):
+                datos["fecha_alta"] = date.today().isoformat()
 
-            logger.debug(f"Datos preparados para crear corredor: {datos}")
-            respuesta = await self.servicio_api.post("corredores/", datos)
+            # Determinar el endpoint basado en si es admin inicial
+            endpoint = "corredores/admin" if es_admin else "corredores/"
+            respuesta = await self.servicio_api.post(endpoint, datos)
             corredor_creado = Corredor(**self._adaptar_corredor_api(respuesta))
             logger.info(f"Corredor creado: {corredor_creado.numero}")
             return corredor_creado
@@ -111,23 +95,10 @@ class RepositorioCorredor(RepositorioBase[Corredor]):
     async def actualizar(self, corredor: Corredor) -> Corredor:
         """Actualiza un corredor existente"""
         try:
-            datos = {
-                "nombres": corredor.nombres,
-                "apellidos": corredor.apellidos,
-                "documento": corredor.documento,
-                "direccion": corredor.direccion,
-                "localidad": corredor.localidad,
-                "telefonos": corredor.telefonos,
-                "movil": corredor.movil,
-                "mail": corredor.mail,
-                "observaciones": corredor.observaciones,
-                "matricula": corredor.matricula,
-                "especializacion": corredor.especializacion,
-                "fecha_alta": corredor.fecha_alta.isoformat() if corredor.fecha_alta else None,
-                "fecha_baja": corredor.fecha_baja.isoformat() if corredor.fecha_baja else None,
-            }
-
-            respuesta = await self.servicio_api.put(f"corredores/{corredor.numero}", datos)
+            datos = corredor.to_dict()
+            respuesta = await self.servicio_api.put(
+                f"corredores/{corredor.numero}", datos
+            )
             corredor_actualizado = Corredor(**self._adaptar_corredor_api(respuesta))
             logger.info(f"Corredor actualizado: {corredor_actualizado.numero}")
             return corredor_actualizado
@@ -135,16 +106,43 @@ class RepositorioCorredor(RepositorioBase[Corredor]):
             logger.error(f"Error al actualizar corredor {corredor.numero}: {str(e)}")
             raise
 
-    async def eliminar(self, id: int) -> bool:
-        """Elimina un corredor por su ID"""
+    async def eliminar(self, numero: int) -> bool:
+        """Elimina un corredor por su número"""
         try:
-            resultado = await self.servicio_api.delete(f"corredores/{id}")
+            resultado = await self.servicio_api.delete(f"corredores/{numero}")
             if resultado:
-                logger.info(f"Corredor {id} eliminado")
+                logger.info(f"Corredor {numero} eliminado")
             return resultado
         except Exception as e:
-            logger.error(f"Error al eliminar corredor {id}: {str(e)}")
+            logger.error(f"Error al eliminar corredor {numero}: {str(e)}")
             raise
 
+    async def buscar_por_documento(self, documento: str) -> Optional[Corredor]:
+        """Busca un corredor por su documento"""
+        try:
+            corredores = await self.obtener_todos()
+            for corredor in corredores:
+                if corredor.documento == documento:
+                    logger.info(f"Corredor encontrado por documento: {documento}")
+                    return corredor
+            logger.info(f"No se encontró corredor con documento: {documento}")
+            return None
+        except Exception as e:
+            logger.error(
+                f"Error al buscar corredor por documento {documento}: {str(e)}"
+            )
+            raise
 
-# El repositorio se inicializará con el servicio API desde main.py
+    async def buscar_por_email(self, email: str) -> Optional[Corredor]:
+        """Busca un corredor por su email"""
+        try:
+            corredores = await self.obtener_todos()
+            for corredor in corredores:
+                if corredor.mail == email:
+                    logger.info(f"Corredor encontrado por email: {email}")
+                    return corredor
+            logger.info(f"No se encontró corredor con email: {email}")
+            return None
+        except Exception as e:
+            logger.error(f"Error al buscar corredor por email {email}: {str(e)}")
+            raise

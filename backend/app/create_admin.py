@@ -1,34 +1,41 @@
 import asyncio
-
-from app.core.roles import Role
-from app.db.crud.usuario import usuario_crud
 from app.db.session import async_session
-from app.schemas.usuario import UsuarioCreate
+from app.db.crud.corredor import corredor_crud
 
-
-async def create_admin():
+async def create_corredor():
     async with async_session() as db:
-        # Verificar si el usuario ya existe
-        user = await usuario_crud.get_by_username(db, "rponce")
-        if user:
-            print("El usuario rponce ya existe")
-            return
-
-        # Crear usuario admin
-        admin = UsuarioCreate(
-            email="rpd.ramas@gmail.com",
-            username="rponce",
-            password="Gallinal2218**",
-            nombre="Rodrigo",
-            apellido="Ponce",
-            role=Role.ADMIN,
-            comision_porcentaje=0,
-            telefono="+5491136995733",  # Formato internacional sin espacios
-        )
-
-        user = await usuario_crud.create(db, obj_in=admin)
-        print(f"Usuario administrador creado: {user.username}")
-
+        try:
+            # Crear un corredor común y su usuario asociado
+            corredor, usuario = await corredor_crud.create_corredor_with_user(
+                db,
+                numero=4555,  # Número diferente al anterior
+                nombres="Juan",
+                apellidos="García",
+                documento="87654321",
+                direccion="Av. Principal 123",
+                localidad="Montevideo",
+                telefonos="91234567",
+                movil="91234567",
+                mail="jgarcia@corredor.com",
+                password="Corredor2024**",
+                is_superuser=False,  # No es superusuario
+                role="corredor",  # Rol de corredor normal
+                observaciones="Corredor regular"
+            )
+            
+            print(f"""
+Corredor creado exitosamente:
+- Nombre: {corredor.nombres} {corredor.apellidos}
+- Número de corredor: {corredor.numero}
+- Email: {usuario.email}
+- Username: {usuario.username}
+- Rol: {usuario.role}
+- Superusuario: {usuario.is_superuser}
+            """)
+            
+        except Exception as e:
+            print(f"Error al crear el corredor: {str(e)}")
+            raise
 
 if __name__ == "__main__":
-    asyncio.run(create_admin())
+    asyncio.run(create_corredor())
