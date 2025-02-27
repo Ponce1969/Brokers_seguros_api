@@ -6,7 +6,6 @@ import logging
 import os
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
-    QApplication,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -96,7 +95,7 @@ class VistaCorredores(QWidget):
         self.tabla.setHorizontalHeaderLabels(
             ["Número", "Nombres", "Apellidos", "Documento", "Email", "Acciones"]
         )
-        
+
         # Configurar propiedades visuales de la tabla
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)

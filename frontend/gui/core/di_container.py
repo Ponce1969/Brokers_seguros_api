@@ -78,8 +78,10 @@ auth_service = AuthService()
 contenedor.registrar_instancia(NetworkManager, network_manager)
 contenedor.registrar_instancia(AuthService, auth_service)
 
+
 # Registrar fábricas para servicios que necesiten crearse bajo demanda
 def crear_network_manager():
     return NetworkManager(API_URL)
+
 
 contenedor.registrar_fabrica(NetworkManager, crear_network_manager)

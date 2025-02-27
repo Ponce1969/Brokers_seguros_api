@@ -35,11 +35,11 @@ class LoginView(QMainWindow):
         # Resolver AuthService desde el contenedor
         auth_service = contenedor.resolver(AuthService)
         self.viewmodel = LoginViewModel(auth_service)
-        
+
         # Conectar señales del ViewModel
         self.viewmodel.login_successful.connect(self._handle_login_success)
         self.viewmodel.login_failed.connect(self._handle_login_error)
-        
+
         self.init_ui()
 
         # Referencia a la ventana principal
@@ -99,11 +99,11 @@ class LoginView(QMainWindow):
         self.login_button.setMinimumHeight(40)
         # Cargar estilos desde el archivo QSS
         try:
-            with open('frontend/gui/resources/styles.qss', 'r') as f:
+            with open("frontend/gui/resources/styles.qss", "r") as f:
                 self.login_button.setStyleSheet(f.read())
         except Exception as e:
             logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
-            
+
         self.login_button.clicked.connect(self._handle_login)
         main_layout.addWidget(self.login_button)
 

@@ -15,10 +15,13 @@ class AuthService(QObject):
     """
     Clase para manejar la autenticación y gestión de sesiones de usuario
     """
+
     # Señales
-    auth_success = pyqtSignal(dict)  # Emite los datos del token cuando la autenticación es exitosa
-    auth_error = pyqtSignal(str)     # Emite mensaje de error cuando la autenticación falla
-    session_expired = pyqtSignal()    # Emite cuando la sesión ha expirado
+    auth_success = pyqtSignal(
+        dict
+    )  # Emite los datos del token cuando la autenticación es exitosa
+    auth_error = pyqtSignal(str)  # Emite mensaje de error cuando la autenticación falla
+    session_expired = pyqtSignal()  # Emite cuando la sesión ha expirado
 
     def __init__(self):
         """
@@ -54,7 +57,7 @@ class AuthService(QObject):
     def _handle_error(self, error_msg: str):
         """Maneja los errores de las peticiones"""
         logger.error(f"❌ Error en operación {self._current_operation}: {error_msg}")
-        
+
         if "Email o contraseña incorrectos" in error_msg:
             self.auth_error.emit("Email o contraseña incorrectos")
         elif "Usuario inactivo" in error_msg:
@@ -73,16 +76,13 @@ class AuthService(QObject):
         try:
             logger.info(f"🔑 Intentando login para usuario: {email}")
             self._current_operation = "login"
-            
+
             # Preparar datos para la petición
-            login_data = {
-                "username": email,
-                "password": password
-            }
-            
+            login_data = {"username": email, "password": password}
+
             # Realizar petición de login
             self.api.post("api/v1/login/access-token", login_data)
-            
+
         except Exception as e:
             logger.error(f"❌ Error inesperado en login: {str(e)}")
             self.auth_error.emit("Error inesperado al autenticar")

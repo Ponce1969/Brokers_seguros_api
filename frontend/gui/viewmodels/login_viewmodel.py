@@ -15,8 +15,10 @@ class LoginViewModel(QObject):
     """ViewModel para manejar la lógica de login"""
 
     # Señales
-    login_successful = pyqtSignal(dict)  # Emite los datos del token cuando el login es exitoso
-    login_failed = pyqtSignal(str)      # Emite el mensaje de error cuando el login falla
+    login_successful = pyqtSignal(
+        dict
+    )  # Emite los datos del token cuando el login es exitoso
+    login_failed = pyqtSignal(str)  # Emite el mensaje de error cuando el login falla
 
     def __init__(self, auth_service: AuthService):
         """
@@ -28,7 +30,7 @@ class LoginViewModel(QObject):
         super().__init__()
         self.auth_service = auth_service
         self.token_data: Optional[dict] = None
-        
+
         # Conectar señales del AuthService
         self.auth_service.auth_success.connect(self._handle_auth_success)
         self.auth_service.auth_error.connect(self._handle_auth_error)

@@ -7,7 +7,6 @@ import logging
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ..models.corredor import Corredor
-from ..core.excepciones import ErrorAPI
 from .corredor_itemmodel import CorredorItemModel
 from ..services.network_manager import NetworkManager
 
@@ -31,12 +30,12 @@ class CorredorViewModel(QObject):
         self.corredores: List[Corredor] = []
         self.corredor_actual: Optional[Corredor] = None
         self.item_model = CorredorItemModel()
-        
+
         # Inicializar NetworkManager
         self.api = NetworkManager("http://localhost:8000")
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
-        
+
         # Variable para rastrear la operación actual
         self._current_operation = None
 
@@ -63,7 +62,9 @@ class CorredorViewModel(QObject):
                 if isinstance(response, dict):
                     self._procesar_corredor_actualizado(response)
                 else:
-                    self.error_ocurrido.emit("Respuesta inválida al actualizar corredor")
+                    self.error_ocurrido.emit(
+                        "Respuesta inválida al actualizar corredor"
+                    )
             elif self._current_operation == "eliminar":
                 self._procesar_corredor_eliminado()
         except Exception as e:
@@ -82,7 +83,7 @@ class CorredorViewModel(QObject):
                     self.corredores.append(corredor)
                 except Exception as e:
                     logger.error(f"Error al procesar corredor: {e}")
-            
+
             self.corredores_actualizados.emit(self.corredores)
             logger.info(f"✅ {len(self.corredores)} corredores cargados")
         except Exception as e:
@@ -207,11 +208,13 @@ class CorredorViewModel(QObject):
     def _procesar_corredor_eliminado(self) -> None:
         """Procesa la respuesta después de eliminar un corredor"""
         try:
-            if hasattr(self, '_corredor_a_eliminar'):
-                self.corredores = [c for c in self.corredores if c.id != self._corredor_a_eliminar]
+            if hasattr(self, "_corredor_a_eliminar"):
+                self.corredores = [
+                    c for c in self.corredores if c.id != self._corredor_a_eliminar
+                ]
                 self.corredores_actualizados.emit(self.corredores)
                 logger.info("✅ Corredor eliminado exitosamente")
-                delattr(self, '_corredor_a_eliminar')
+                delattr(self, "_corredor_a_eliminar")
         except Exception as e:
             logger.error(f"Error procesando eliminación de corredor: {e}")
             self.error_ocurrido.emit(str(e))
