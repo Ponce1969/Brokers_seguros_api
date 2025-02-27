@@ -39,12 +39,16 @@ class DialogoCorredor(QDialog):
         # Si no hay corredor, crear uno vacío con valores por defecto
         if corredor is None:
             corredor = Corredor(
-                id="",  # Se generará al guardar
+                id=0,  # Se generará al guardar
                 numero=0,  # Se generará al guardar
+                email="",  # Cambiado de 'mail' a 'email' para coincidir con la definición de la clase
+                nombre="",  # Campo requerido
+                telefono="",  # Campo requerido
+                direccion="",  # Campo requerido
                 nombres="",
                 apellidos="",
                 documento="",
-                mail="",
+                localidad="",
                 matricula="",  # Opcional ahora
                 activo=True,
             )
@@ -114,9 +118,9 @@ class DialogoCorredor(QDialog):
         form_layout.addRow("Móvil:", self.campos["movil"])
 
         # Email
-        self.campos["mail"] = QLineEdit()
-        self.campos["mail"].setPlaceholderText("correo@ejemplo.com")
-        form_layout.addRow("Email *:", self.campos["mail"])
+        self.campos["email"] = QLineEdit()
+        self.campos["email"].setPlaceholderText("correo@ejemplo.com")
+        form_layout.addRow("Email *:", self.campos["email"])
 
         # Observaciones
         self.campos["observaciones"] = QLineEdit()
@@ -157,7 +161,7 @@ class DialogoCorredor(QDialog):
         self.mapper.addMapping(self.campos["localidad"], 5)
         self.mapper.addMapping(self.campos["telefonos"], 6)
         self.mapper.addMapping(self.campos["movil"], 7)
-        self.mapper.addMapping(self.campos["mail"], 8)
+        self.mapper.addMapping(self.campos["email"], 8)
         self.mapper.addMapping(self.campos["observaciones"], 9)
         self.mapper.addMapping(self.campos["matricula"], 10)
         self.mapper.addMapping(self.campos["especializacion"], 11)
@@ -190,11 +194,11 @@ class DialogoCorredor(QDialog):
         if not self.campos["documento"].text().strip():
             return False, "El documento es requerido"
         # La matrícula ya no es requerida
-        if not self.campos["mail"].text().strip():
+        if not self.campos["email"].text().strip():
             return False, "El email es requerido"
 
         # Validar formato de email
-        email = self.campos["mail"].text().strip()
+        email = self.campos["email"].text().strip()
         if "@" not in email or "." not in email:
             return False, "El email no tiene un formato válido"
 
@@ -258,7 +262,7 @@ class DialogoCorredor(QDialog):
             "localidad": self.campos["localidad"].text().strip() or None,
             "telefonos": self.campos["telefonos"].text().strip() or None,
             "movil": self.campos["movil"].text().strip() or None,
-            "mail": self.campos["mail"].text().strip(),
+            "email": self.campos["email"].text().strip(),
             "observaciones": self.campos["observaciones"].text().strip() or None,
             "matricula": self.campos["matricula"].text().strip() or "",
             "especializacion": self.campos["especializacion"].text().strip() or None,

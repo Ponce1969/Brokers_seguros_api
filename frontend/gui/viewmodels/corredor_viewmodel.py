@@ -110,7 +110,7 @@ class CorredorViewModel(QObject):
         """
         try:
             # Validar datos requeridos
-            campos_requeridos = ["numero", "apellidos", "documento", "direccion", "localidad", "mail"]
+            campos_requeridos = ["numero", "apellidos", "documento", "direccion", "localidad", "email"]
             for campo in campos_requeridos:
                 if not datos.get(campo):
                     raise ValueError(f"El campo {campo} es requerido")
@@ -125,7 +125,7 @@ class CorredorViewModel(QObject):
                 "localidad": datos.get("localidad"),
                 "telefonos": datos.get("telefonos"),
                 "movil": datos.get("movil"),
-                "mail": datos.get("mail"),
+                "mail": datos.get("email"),  # Mapear 'email' del frontend a 'mail' para la API
                 "matricula": datos.get("matricula"),
                 "especializacion": datos.get("especializacion"),
                 "fecha_alta": date.today().isoformat() if datos.get("fecha_alta") is None else datos.get("fecha_alta"),
@@ -143,10 +143,19 @@ class CorredorViewModel(QObject):
         """Procesa la respuesta después de crear un corredor"""
         try:
             corredor = Corredor.from_dict(response)
+            # Agregamos el corredor a la lista
             self.corredores.append(corredor)
-            self.item_model.addCorredor(corredor)
+            
+            # Actualizamos el modelo completo para asegurar consistencia
+            # en lugar de agregar solo el nuevo corredor
+            self.item_model.updateCorredores(self.corredores)
+            
+            # Notificamos que se actualizó el corredor
             self.corredor_actualizado.emit(corredor)
+            
+            # Notificamos que se actualizó la lista completa
             self.corredores_actualizados.emit(self.corredores)
+            
             logger.info(f"✅ Corredor {corredor.numero} creado exitosamente")
         except Exception as e:
             logger.error(f"Error procesando corredor creado: {e}")
