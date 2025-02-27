@@ -4,7 +4,7 @@ Modelo de datos para Corredor
 
 from dataclasses import dataclass
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 import logging
 
 # Configurar logging
@@ -20,21 +20,21 @@ class Corredor:
     # Campos requeridos
     id: int
     numero: int
-    nombres: str
     apellidos: str
     documento: str
+    direccion: str
+    localidad: str
     mail: str
-    matricula: str
 
     # Campos opcionales
-    direccion: Optional[str] = None
-    localidad: Optional[str] = None
+    nombres: Optional[str] = None
     telefonos: Optional[str] = None
     movil: Optional[str] = None
     observaciones: Optional[str] = None
+    matricula: Optional[str] = None
     especializacion: Optional[str] = None
-    fecha_alta: Optional[datetime] = None
-    fecha_baja: Optional[datetime] = None
+    fecha_alta: Optional[date] = None
+    fecha_baja: Optional[date] = None
     activo: bool = True
 
     @classmethod
@@ -61,9 +61,7 @@ class Corredor:
                     nombres = partes[0]
                     apellidos = " ".join(partes[1:]) if len(partes) > 1 else ""
             except Exception as e:
-                logger.error(
-                    f"Error al dividir nombre completo '{nombre_completo}': {e}"
-                )
+                logger.error(f"Error al dividir nombre completo '{nombre_completo}': {e}")
                 nombres = nombre_completo
                 apellidos = ""
 
@@ -84,41 +82,42 @@ class Corredor:
         except (ValueError, TypeError):
             numero = 0
 
+        # Procesar fechas
+        def parse_date(date_str: Optional[str]) -> Optional[date]:
+            if not date_str:
+                return None
+            try:
+                # Intentar primero como datetime
+                if 'T' in date_str:
+                    return datetime.fromisoformat(date_str).date()
+                # Luego como date
+                return date.fromisoformat(date_str)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error al procesar fecha '{date_str}': {e}")
+                return None
+
         return cls(
             id=int(data.get("id", 0)),
             numero=numero,
             nombres=nombres,
             apellidos=apellidos,
             documento=data.get("documento", data.get("rut", "")),
-            direccion=data.get("direccion"),
-            localidad=data.get("localidad"),
+            direccion=data.get("direccion", ""),
+            localidad=data.get("localidad", ""),
             telefonos=telefonos,
             movil=data.get("movil"),
             mail=mail,
             observaciones=data.get("observaciones"),
-            matricula=data.get("matricula", ""),
+            matricula=data.get("matricula"),
             especializacion=data.get("especializacion"),
-            fecha_alta=(
-                datetime.fromisoformat(data["fecha_alta"])
-                if data.get("fecha_alta")
-                else None
-            ),
-            fecha_baja=(
-                datetime.fromisoformat(data["fecha_baja"])
-                if data.get("fecha_baja")
-                else None
-            ),
-            activo=data.get(
-                "activo", data.get("fecha_baja") is None
-            ),  # Activo si no tiene fecha de baja
+            fecha_alta=parse_date(data.get("fecha_alta")),
+            fecha_baja=parse_date(data.get("fecha_baja")),
+            activo=data.get("activo", True),
         )
 
-    def to_dict(self, include_password: bool = False) -> dict:
+    def to_dict(self) -> dict:
         """
         Convierte la instancia a un diccionario
-
-        Args:
-            include_password: Si se debe incluir la contraseña en el diccionario
 
         Returns:
             dict: Diccionario con los datos del corredor
@@ -141,7 +140,7 @@ class Corredor:
             "fecha_baja": self.fecha_baja.isoformat() if self.fecha_baja else None,
             "activo": self.activo,
         }
-        return data
+        return {k: v for k, v in data.items() if v is not None}
 
     def actualizar(self, datos: dict) -> None:
         """
@@ -174,18 +173,17 @@ class Corredor:
             self.matricula = datos["matricula"]
         if "especializacion" in datos:
             self.especializacion = datos["especializacion"]
-        if "fecha_alta" in datos:
+        if "fecha_alta" in datos and datos["fecha_alta"]:
             self.fecha_alta = (
-                datetime.fromisoformat(datos["fecha_alta"])
-                if datos["fecha_alta"]
-                else None
+                datetime.fromisoformat(datos["fecha_alta"]).date()
+                if isinstance(datos["fecha_alta"], str)
+                else datos["fecha_alta"]
             )
-        if "fecha_baja" in datos:
+        if "fecha_baja" in datos and datos["fecha_baja"]:
             self.fecha_baja = (
-                datetime.fromisoformat(datos["fecha_baja"])
-                if datos["fecha_baja"]
-                else None
+                datetime.fromisoformat(datos["fecha_baja"]).date()
+                if isinstance(datos["fecha_baja"], str)
+                else datos["fecha_baja"]
             )
-            self.activo = datos.get("fecha_baja") is None
         if "activo" in datos:
             self.activo = datos["activo"]

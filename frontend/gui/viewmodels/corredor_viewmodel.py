@@ -5,8 +5,10 @@ ViewModel para la gestión de corredores usando QNetworkAccessManager
 from typing import List, Optional
 import logging
 from PyQt6.QtCore import QObject, pyqtSignal
+from datetime import date
 
 from ..models.corredor import Corredor
+from ..core.excepciones import ErrorAPI
 from .corredor_itemmodel import CorredorItemModel
 from ..services.network_manager import NetworkManager
 
@@ -30,12 +32,12 @@ class CorredorViewModel(QObject):
         self.corredores: List[Corredor] = []
         self.corredor_actual: Optional[Corredor] = None
         self.item_model = CorredorItemModel()
-
+        
         # Inicializar NetworkManager
-        self.api = NetworkManager("http://localhost:8000")
+        self.api = NetworkManager()
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
-
+        
         # Variable para rastrear la operación actual
         self._current_operation = None
 
@@ -62,9 +64,7 @@ class CorredorViewModel(QObject):
                 if isinstance(response, dict):
                     self._procesar_corredor_actualizado(response)
                 else:
-                    self.error_ocurrido.emit(
-                        "Respuesta inválida al actualizar corredor"
-                    )
+                    self.error_ocurrido.emit("Respuesta inválida al actualizar corredor")
             elif self._current_operation == "eliminar":
                 self._procesar_corredor_eliminado()
         except Exception as e:
@@ -83,7 +83,7 @@ class CorredorViewModel(QObject):
                     self.corredores.append(corredor)
                 except Exception as e:
                     logger.error(f"Error al procesar corredor: {e}")
-
+            
             self.corredores_actualizados.emit(self.corredores)
             logger.info(f"✅ {len(self.corredores)} corredores cargados")
         except Exception as e:
@@ -109,28 +109,25 @@ class CorredorViewModel(QObject):
         """
         try:
             # Validar datos requeridos
-            campos_requeridos = ["numero", "nombres", "apellidos", "mail"]
+            campos_requeridos = ["numero", "apellidos", "documento", "direccion", "localidad", "mail"]
             for campo in campos_requeridos:
                 if not datos.get(campo):
                     raise ValueError(f"El campo {campo} es requerido")
 
             # Adaptar los datos al formato esperado por la API
             datos_api = {
-                "numero": datos.get("numero"),
+                "numero": int(datos.get("numero")),  # Asegurar que sea entero
                 "nombres": datos.get("nombres", ""),
-                "apellidos": datos.get("apellidos", ""),
-                "documento": datos.get("documento", ""),
-                "mail": datos.get("mail"),
-                "matricula": datos.get("matricula", ""),
+                "apellidos": datos.get("apellidos"),
+                "documento": datos.get("documento"),
                 "direccion": datos.get("direccion"),
                 "localidad": datos.get("localidad"),
                 "telefonos": datos.get("telefonos"),
                 "movil": datos.get("movil"),
-                "observaciones": datos.get("observaciones"),
+                "mail": datos.get("mail"),
+                "matricula": datos.get("matricula"),
                 "especializacion": datos.get("especializacion"),
-                "fecha_alta": datos.get("fecha_alta"),
-                "fecha_baja": datos.get("fecha_baja"),
-                "activo": datos.get("activo", True),
+                "fecha_alta": date.today().isoformat() if datos.get("fecha_alta") is None else datos.get("fecha_alta"),
             }
 
             self._current_operation = "crear"
@@ -166,7 +163,23 @@ class CorredorViewModel(QObject):
         try:
             logger.info(f"📝 Actualizando corredor {id}...")
             self._current_operation = "actualizar"
-            self.api.put(f"api/v1/corredores/{id}", datos)
+            
+            # Adaptar los datos al formato esperado por la API
+            datos_api = {
+                "nombres": datos.get("nombres"),
+                "apellidos": datos.get("apellidos"),
+                "documento": datos.get("documento"),
+                "direccion": datos.get("direccion"),
+                "localidad": datos.get("localidad"),
+                "telefonos": datos.get("telefonos"),
+                "movil": datos.get("movil"),
+                "mail": datos.get("mail"),
+                "matricula": datos.get("matricula"),
+                "especializacion": datos.get("especializacion"),
+                "fecha_baja": datos.get("fecha_baja"),
+            }
+            
+            self.api.put(f"api/v1/corredores/{id}", datos_api)
         except Exception as e:
             mensaje = f"Error al actualizar corredor: {str(e)}"
             logger.error(f"❌ {mensaje}")
@@ -208,13 +221,11 @@ class CorredorViewModel(QObject):
     def _procesar_corredor_eliminado(self) -> None:
         """Procesa la respuesta después de eliminar un corredor"""
         try:
-            if hasattr(self, "_corredor_a_eliminar"):
-                self.corredores = [
-                    c for c in self.corredores if c.id != self._corredor_a_eliminar
-                ]
+            if hasattr(self, '_corredor_a_eliminar'):
+                self.corredores = [c for c in self.corredores if c.id != self._corredor_a_eliminar]
                 self.corredores_actualizados.emit(self.corredores)
                 logger.info("✅ Corredor eliminado exitosamente")
-                delattr(self, "_corredor_a_eliminar")
+                delattr(self, '_corredor_a_eliminar')
         except Exception as e:
             logger.error(f"Error procesando eliminación de corredor: {e}")
             self.error_ocurrido.emit(str(e))
