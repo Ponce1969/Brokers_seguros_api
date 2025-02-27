@@ -3,9 +3,15 @@ Servicio para manejar la autenticación de usuarios usando QNetworkAccessManager
 """
 
 import logging
+import os
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtNetwork import QNetworkRequest
+from dotenv import load_dotenv
 from .network_manager import NetworkManager
+
+# Cargar variables de entorno
+load_dotenv()
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -17,9 +23,7 @@ class AuthService(QObject):
     """
 
     # Señales
-    auth_success = pyqtSignal(
-        dict
-    )  # Emite los datos del token cuando la autenticación es exitosa
+    auth_success = pyqtSignal(dict)  # Emite los datos del token cuando la autenticación es exitosa
     auth_error = pyqtSignal(str)  # Emite mensaje de error cuando la autenticación falla
     session_expired = pyqtSignal()  # Emite cuando la sesión ha expirado
 
@@ -28,7 +32,7 @@ class AuthService(QObject):
         Inicializa el servicio de autenticación
         """
         super().__init__()
-        self.api = NetworkManager("http://localhost:8000")
+        self.api = NetworkManager(os.getenv("API_URL", "http://localhost:8000"))
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
         self.api.token_expired.connect(self.session_expired.emit)
@@ -77,11 +81,26 @@ class AuthService(QObject):
             logger.info(f"🔑 Intentando login para usuario: {email}")
             self._current_operation = "login"
 
-            # Preparar datos para la petición
-            login_data = {"username": email, "password": password}
+            # Preparar datos para la petición en el formato que espera FastAPI
+            login_data = {
+                "username": email,
+                "password": password,
+                "grant_type": "password",
+                "scope": "",
+                "client_id": "",
+                "client_secret": "",
+            }
 
-            # Realizar petición de login
-            self.api.post("api/v1/login/access-token", login_data)
+            # Configurar la petición con el Content-Type correcto
+            request = QNetworkRequest(self.api._create_url("api/v1/login/access-token"))
+            request.setHeader(
+                QNetworkRequest.KnownHeaders.ContentTypeHeader,
+                "application/x-www-form-urlencoded",
+            )
+
+            # Realizar petición de login con los datos en formato form-urlencoded
+            form_data = "&".join(f"{k}={v}" for k, v in login_data.items() if v)
+            self.api.post("api/v1/login/access-token", form_data, request)
 
         except Exception as e:
             logger.error(f"❌ Error inesperado en login: {str(e)}")

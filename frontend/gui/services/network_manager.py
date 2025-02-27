@@ -5,25 +5,37 @@ Servicio para manejar las comunicaciones con la API REST usando QNetworkAccessMa
 from PyQt6.QtCore import QObject, pyqtSignal, QUrl, QByteArray
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 import logging
+import os
+from dotenv import load_dotenv
 
+# Cargar variables de entorno
+load_dotenv()
+
+# Configurar logging
 logger = logging.getLogger(__name__)
 
 
 class NetworkManager(QObject):
     # Señales para notificar respuestas y errores
-    response_received = pyqtSignal(
-        object
-    )  # Para respuestas JSON (puede ser dict o list)
+    response_received = pyqtSignal(object)  # Para respuestas JSON (puede ser dict o list)
     error_occurred = pyqtSignal(str)  # Para errores
     token_expired = pyqtSignal()  # Para manejar expiración de token
 
     def __init__(
-        self, base_url: str = "http://localhost:8000", parent: Optional[QObject] = None
+        self, base_url: Optional[str] = None, parent: Optional[QObject] = None
     ):
+        """
+        Inicializa el NetworkManager
+
+        Args:
+            base_url: URL base para las peticiones. Si no se proporciona, se usa API_URL del .env
+            parent: Objeto padre para la jerarquía de Qt
+        """
         super().__init__(parent)
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url or os.getenv("API_URL", "http://localhost:8000")
+        self.base_url = self.base_url.rstrip("/")
         self.manager = QNetworkAccessManager()
         self.token: Optional[str] = None
 
@@ -34,9 +46,13 @@ class NetworkManager(QObject):
         """Establece el token de autenticación para las peticiones"""
         self.token = token
 
+    def _create_url(self, endpoint: str) -> QUrl:
+        """Crea una URL completa para la petición"""
+        return QUrl(f"{self.base_url}/{endpoint}")
+
     def _create_request(self, endpoint: str) -> QNetworkRequest:
         """Crea una petición HTTP con las cabeceras necesarias"""
-        url = QUrl(f"{self.base_url}/{endpoint}")
+        url = self._create_url(endpoint)
         request = QNetworkRequest(url)
         request.setHeader(
             QNetworkRequest.KnownHeaders.ContentTypeHeader, "application/json"
@@ -55,17 +71,14 @@ class NetworkManager(QObject):
                 try:
                     json_data = json.loads(response_data)
                     self.response_received.emit(json_data)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error decodificando JSON: {e}")
-                    self.error_occurred.emit(
-                        "Error al procesar la respuesta del servidor"
-                    )
+                except json.JSONDecodeError:
+                    # Si no es JSON, emitir la respuesta como texto
+                    self.response_received.emit({"response": response_data})
             else:
                 error_msg = reply.errorString()
-                if (
-                    reply.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
-                    == 401
-                ):
+                if reply.attribute(
+                    QNetworkRequest.Attribute.HttpStatusCodeAttribute
+                ) == 401:
                     self.token_expired.emit()
                 logger.error(f"Error en la petición: {error_msg}")
                 self.error_occurred.emit(error_msg)
@@ -75,24 +88,69 @@ class NetworkManager(QObject):
         finally:
             reply.deleteLater()
 
-    def get(self, endpoint: str) -> None:
-        """Realiza una petición GET"""
-        request = self._create_request(endpoint)
+    def get(self, endpoint: str, custom_request: Optional[QNetworkRequest] = None) -> None:
+        """
+        Realiza una petición GET
+
+        Args:
+            endpoint: Endpoint de la API
+            custom_request: Petición personalizada (opcional)
+        """
+        request = custom_request or self._create_request(endpoint)
         self.manager.get(request)
 
-    def post(self, endpoint: str, data: Dict[str, Any]) -> None:
-        """Realiza una petición POST"""
-        request = self._create_request(endpoint)
-        json_data = QByteArray(json.dumps(data).encode("utf-8"))
-        self.manager.post(request, json_data)
+    def post(
+        self,
+        endpoint: str,
+        data: Union[Dict[str, Any], str],
+        custom_request: Optional[QNetworkRequest] = None,
+    ) -> None:
+        """
+        Realiza una petición POST
 
-    def put(self, endpoint: str, data: Dict[str, Any]) -> None:
-        """Realiza una petición PUT"""
-        request = self._create_request(endpoint)
+        Args:
+            endpoint: Endpoint de la API
+            data: Datos a enviar (dict para JSON o str para form-data)
+            custom_request: Petición personalizada (opcional)
+        """
+        request = custom_request or self._create_request(endpoint)
+        
+        if isinstance(data, dict):
+            # Si es un diccionario, enviar como JSON
+            json_data = QByteArray(json.dumps(data).encode("utf-8"))
+            self.manager.post(request, json_data)
+        else:
+            # Si es string, enviar como form-data
+            form_data = QByteArray(data.encode("utf-8"))
+            self.manager.post(request, form_data)
+
+    def put(
+        self,
+        endpoint: str,
+        data: Dict[str, Any],
+        custom_request: Optional[QNetworkRequest] = None,
+    ) -> None:
+        """
+        Realiza una petición PUT
+
+        Args:
+            endpoint: Endpoint de la API
+            data: Datos a enviar
+            custom_request: Petición personalizada (opcional)
+        """
+        request = custom_request or self._create_request(endpoint)
         json_data = QByteArray(json.dumps(data).encode("utf-8"))
         self.manager.put(request, json_data)
 
-    def delete(self, endpoint: str) -> None:
-        """Realiza una petición DELETE"""
-        request = self._create_request(endpoint)
+    def delete(
+        self, endpoint: str, custom_request: Optional[QNetworkRequest] = None
+    ) -> None:
+        """
+        Realiza una petición DELETE
+
+        Args:
+            endpoint: Endpoint de la API
+            custom_request: Petición personalizada (opcional)
+        """
+        request = custom_request or self._create_request(endpoint)
         self.manager.deleteResource(request)
