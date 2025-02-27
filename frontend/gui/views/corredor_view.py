@@ -1,11 +1,12 @@
 """
-Vista para la gestión de corredores usando QNetworkAccessManager
+Vista para la gestión de corredores
 """
 
 import logging
 import os
 from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
+    QApplication,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -91,18 +92,18 @@ class VistaCorredores(QWidget):
 
         # Tabla de corredores
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(6)
+        self.tabla.setColumnCount(7)  # Aumentado para incluir más campos
         self.tabla.setHorizontalHeaderLabels(
-            ["Número", "Nombres", "Apellidos", "Documento", "Email", "Acciones"]
+            ["Número", "Nombre", "Email", "Teléfono", "Dirección", "Estado", "Acciones"]
         )
-
+        
         # Configurar propiedades visuales de la tabla
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # Número
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Acciones
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Acciones
         self.tabla.setColumnWidth(0, 70)  # Ancho para número
-        self.tabla.setColumnWidth(5, 100)  # Ancho para acciones
+        self.tabla.setColumnWidth(6, 100)  # Ancho para acciones
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setGridStyle(Qt.PenStyle.DotLine)
         self.tabla.setShowGrid(True)
@@ -122,15 +123,16 @@ class VistaCorredores(QWidget):
                 try:
                     items = [
                         QTableWidgetItem(str(corredor.numero)),
-                        QTableWidgetItem(corredor.nombres or ""),
-                        QTableWidgetItem(corredor.apellidos or ""),
-                        QTableWidgetItem(corredor.documento or ""),
-                        QTableWidgetItem(corredor.mail or ""),
+                        QTableWidgetItem(corredor.nombre),
+                        QTableWidgetItem(corredor.email),
+                        QTableWidgetItem(corredor.telefono or ""),
+                        QTableWidgetItem(corredor.direccion or ""),
+                        QTableWidgetItem("Activo" if corredor.activo else "Inactivo"),
                     ]
 
                     for col, item in enumerate(items):
                         item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                        if col == 0:
+                        if col == 0:  # Número
                             item.setTextAlignment(
                                 Qt.AlignmentFlag.AlignRight
                                 | Qt.AlignmentFlag.AlignVCenter
@@ -139,7 +141,8 @@ class VistaCorredores(QWidget):
 
                     if self.es_admin:
                         self._agregar_botones_accion(i, corredor)
-                except AttributeError:
+                except AttributeError as e:
+                    logger.error(f"Error al procesar corredor: {e}")
                     continue
 
             self.tabla.resizeColumnsToContents()
@@ -168,7 +171,7 @@ class VistaCorredores(QWidget):
         layout_acciones.addWidget(btn_editar)
         layout_acciones.addWidget(btn_eliminar)
 
-        self.tabla.setCellWidget(i, 5, widget_acciones)
+        self.tabla.setCellWidget(i, 6, widget_acciones)
 
     def filtrar_corredores(self):
         """Filtra la tabla según el texto de búsqueda"""
