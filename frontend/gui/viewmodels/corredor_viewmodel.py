@@ -1,5 +1,5 @@
 """
-ViewModel para la gestión de corredores
+ViewModel para la gestión de corredores usando QNetworkAccessManager
 """
 
 from typing import List, Optional
@@ -9,8 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from ..models.corredor import Corredor
 from ..core.excepciones import ErrorAPI
 from .corredor_itemmodel import CorredorItemModel
-from ..services.api_service import ServicioAPI
-from ..core.di_container import contenedor
+from ..services.network_manager import NetworkManager
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -31,67 +30,88 @@ class CorredorViewModel(QObject):
         super().__init__()
         self.corredores: List[Corredor] = []
         self.corredor_actual: Optional[Corredor] = None
-        self.api: ServicioAPI = contenedor.resolver(ServicioAPI)
         self.item_model = CorredorItemModel()
+        
+        # Inicializar NetworkManager
+        self.api = NetworkManager("http://localhost:8000")
+        self.api.response_received.connect(self._handle_response)
+        self.api.error_occurred.connect(self._handle_error)
+        
+        # Variable para rastrear la operación actual
+        self._current_operation = None
 
-    async def cargar_corredores(self) -> None:
-        """
-        Carga la lista de corredores desde el servidor
-        """
+    def _handle_error(self, error_msg: str):
+        """Maneja los errores del NetworkManager"""
+        logger.error(f"Error en la operación {self._current_operation}: {error_msg}")
+        self.error_ocurrido.emit(error_msg)
+
+    def _handle_response(self, response):
+        """Maneja las respuestas del servidor según la operación actual"""
         try:
-            if not self.api:
-                raise ValueError("API service no inicializado")
+            if self._current_operation == "cargar":
+                if isinstance(response, list):
+                    self._procesar_lista_corredores(response)
+                else:
+                    logger.error("Respuesta inesperada al cargar corredores")
+                    self.error_ocurrido.emit("Formato de respuesta inválido")
+            elif self._current_operation == "crear":
+                if isinstance(response, dict):
+                    self._procesar_corredor_creado(response)
+                else:
+                    self.error_ocurrido.emit("Respuesta inválida al crear corredor")
+            elif self._current_operation == "actualizar":
+                if isinstance(response, dict):
+                    self._procesar_corredor_actualizado(response)
+                else:
+                    self.error_ocurrido.emit("Respuesta inválida al actualizar corredor")
+            elif self._current_operation == "eliminar":
+                self._procesar_corredor_eliminado()
+        except Exception as e:
+            logger.error(f"Error procesando respuesta: {e}")
+            self.error_ocurrido.emit(str(e))
+        finally:
+            self._current_operation = None
 
-            logger.info("📥 Cargando lista de corredores...")
-            response = await self.api.get("api/v1/corredores/")
-            if not response:
-                logger.warning("⚠️ No se recibieron datos de corredores")
-                self.corredores = []
-                self.corredores_actualizados.emit(self.corredores)
-                return
-
-            # Procesar la respuesta
-            if isinstance(response, list):
-                self.corredores = []
-                for corredor_data in response:
-                    try:
-                        corredor = Corredor.from_dict(corredor_data)
-                        self.corredores.append(corredor)
-                    except Exception as e:
-                        logger.error(f"Error al crear corredor: {str(e)}")
-            else:
-                self.corredores = []
-
+    def _procesar_lista_corredores(self, response: List[dict]) -> None:
+        """Procesa la lista de corredores recibida del servidor"""
+        try:
+            self.corredores = []
+            for corredor_data in response:
+                try:
+                    corredor = Corredor.from_dict(corredor_data)
+                    self.corredores.append(corredor)
+                except Exception as e:
+                    logger.error(f"Error al procesar corredor: {e}")
+            
             self.corredores_actualizados.emit(self.corredores)
             logger.info(f"✅ {len(self.corredores)} corredores cargados")
-        except ErrorAPI as e:
-            mensaje = f"Error al cargar corredores: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
         except Exception as e:
-            mensaje = f"Error inesperado al cargar corredores: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
+            logger.error(f"Error procesando lista de corredores: {e}")
+            self.error_ocurrido.emit(f"Error al procesar los datos: {str(e)}")
 
-    async def crear_corredor(self, datos: dict) -> Optional[Corredor]:
+    def cargar_corredores(self) -> None:
+        """Carga la lista de corredores desde el servidor"""
+        try:
+            logger.info("📥 Cargando lista de corredores...")
+            self._current_operation = "cargar"
+            self.api.get("api/v1/corredores")
+        except Exception as e:
+            logger.error(f"Error al iniciar carga de corredores: {e}")
+            self.error_ocurrido.emit(str(e))
+
+    def crear_corredor(self, datos: dict) -> None:
         """
         Crea un nuevo corredor
 
         Args:
             datos: Diccionario con los datos del corredor
-
-        Returns:
-            Corredor: El corredor creado o None si hubo error
         """
         try:
-            if not self.api:
-                raise ErrorAPI("Servicio API no inicializado")
-
             # Validar datos requeridos
             campos_requeridos = ["numero", "nombres", "apellidos", "mail"]
             for campo in campos_requeridos:
                 if not datos.get(campo):
-                    raise ErrorAPI(f"El campo {campo} es requerido")
+                    raise ValueError(f"El campo {campo} es requerido")
 
             # Adaptar los datos al formato esperado por la API
             datos_api = {
@@ -112,86 +132,89 @@ class CorredorViewModel(QObject):
                 "activo": datos.get("activo", True),
             }
 
-            response = await self.api.post("api/v1/corredores", datos_api)
+            self._current_operation = "crear"
+            self.api.post("api/v1/corredores", datos_api)
 
-            if not response or not isinstance(response, dict):
-                raise ErrorAPI("Respuesta inválida del servidor")
+        except Exception as e:
+            mensaje = f"Error al crear corredor: {str(e)}"
+            logger.error(f"❌ {mensaje}")
+            self.error_ocurrido.emit(mensaje)
 
+    def _procesar_corredor_creado(self, response: dict) -> None:
+        """Procesa la respuesta después de crear un corredor"""
+        try:
             corredor = Corredor.from_dict(response)
             self.corredores.append(corredor)
             self.item_model.addCorredor(corredor)
             self.corredor_actualizado.emit(corredor)
             self.corredores_actualizados.emit(self.corredores)
-
             mensaje_exito = f"Corredor {corredor.numero} creado exitosamente"
             self.error_ocurrido.emit(mensaje_exito)
-            return corredor
-
-        except ErrorAPI as e:
-            mensaje = f"Error al crear corredor: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
         except Exception as e:
-            mensaje = f"Error inesperado al crear corredor: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            logger.exception("Detalles del error:")
-            self.error_ocurrido.emit(mensaje)
-        return None
+            logger.error(f"Error procesando corredor creado: {e}")
+            self.error_ocurrido.emit(str(e))
 
-    async def actualizar_corredor(self, id: int, datos: dict) -> Optional[Corredor]:
+    def actualizar_corredor(self, id: int, datos: dict) -> None:
         """
         Actualiza un corredor existente
 
         Args:
             id: ID del corredor a actualizar
             datos: Diccionario con los datos a actualizar
-
-        Returns:
-            Corredor actualizado o None si ocurrió un error
         """
         try:
             logger.info(f"📝 Actualizando corredor {id}...")
-            respuesta = await self.api.put(f"api/v1/corredores/{id}", datos)
-            corredor = Corredor.from_dict(respuesta)
-            self.corredor_actualizado.emit(corredor)
-            logger.info("✅ Corredor actualizado exitosamente")
-            return corredor
-        except ErrorAPI as e:
+            self._current_operation = "actualizar"
+            self.api.put(f"api/v1/corredores/{id}", datos)
+        except Exception as e:
             mensaje = f"Error al actualizar corredor: {str(e)}"
             logger.error(f"❌ {mensaje}")
             self.error_ocurrido.emit(mensaje)
-        except Exception as e:
-            mensaje = f"Error inesperado al actualizar corredor: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
-        return None
 
-    async def eliminar_corredor(self, id: int) -> bool:
+    def _procesar_corredor_actualizado(self, response: dict) -> None:
+        """Procesa la respuesta después de actualizar un corredor"""
+        try:
+            corredor = Corredor.from_dict(response)
+            # Actualizar la lista local
+            for i, c in enumerate(self.corredores):
+                if c.id == corredor.id:
+                    self.corredores[i] = corredor
+                    break
+            self.corredor_actualizado.emit(corredor)
+            self.corredores_actualizados.emit(self.corredores)
+            logger.info("✅ Corredor actualizado exitosamente")
+        except Exception as e:
+            logger.error(f"Error procesando corredor actualizado: {e}")
+            self.error_ocurrido.emit(str(e))
+
+    def eliminar_corredor(self, id: int) -> None:
         """
         Elimina un corredor
 
         Args:
             id: ID del corredor a eliminar
-
-        Returns:
-            bool: True si se eliminó correctamente
         """
         try:
             logger.info(f"🗑️ Eliminando corredor {id}...")
-            await self.api.delete(f"api/v1/corredores/{id}")
-            self.corredores = [c for c in self.corredores if c.id != id]
-            self.corredores_actualizados.emit(self.corredores)
-            logger.info("✅ Corredor eliminado exitosamente")
-            return True
-        except ErrorAPI as e:
+            self._current_operation = "eliminar"
+            self._corredor_a_eliminar = id
+            self.api.delete(f"api/v1/corredores/{id}")
+        except Exception as e:
             mensaje = f"Error al eliminar corredor: {str(e)}"
             logger.error(f"❌ {mensaje}")
             self.error_ocurrido.emit(mensaje)
+
+    def _procesar_corredor_eliminado(self) -> None:
+        """Procesa la respuesta después de eliminar un corredor"""
+        try:
+            if hasattr(self, '_corredor_a_eliminar'):
+                self.corredores = [c for c in self.corredores if c.id != self._corredor_a_eliminar]
+                self.corredores_actualizados.emit(self.corredores)
+                logger.info("✅ Corredor eliminado exitosamente")
+                delattr(self, '_corredor_a_eliminar')
         except Exception as e:
-            mensaje = f"Error inesperado al eliminar corredor: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
-        return False
+            logger.error(f"Error procesando eliminación de corredor: {e}")
+            self.error_ocurrido.emit(str(e))
 
     def buscar_corredor(self, id: int) -> Optional[Corredor]:
         """

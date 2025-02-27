@@ -1,15 +1,12 @@
 """
-Vista para la gestión de corredores
+Vista para la gestión de corredores usando QNetworkAccessManager
 """
 
-import asyncio
 import logging
 import os
-import threading
-from PyQt6.QtCore import Qt, pyqtSlot, QMetaObject, Q_ARG
+from PyQt6.QtCore import Qt, pyqtSlot
 from PyQt6.QtWidgets import (
     QApplication,
-    QDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -32,9 +29,10 @@ logger = logging.getLogger(__name__)
 class VistaCorredores(QWidget):
     """Vista principal para la gestión de corredores"""
 
-    def __init__(self, viewmodel: CorredorViewModel, es_admin: bool = False):
+    def __init__(self, viewmodel: CorredorViewModel = None, es_admin: bool = False):
         super().__init__()
-        self.viewmodel = viewmodel
+        # Si no se proporciona un viewmodel, crear uno nuevo
+        self.viewmodel = viewmodel if viewmodel is not None else CorredorViewModel()
         self.es_admin = es_admin
 
         # Cargar la hoja de estilos
@@ -43,18 +41,8 @@ class VistaCorredores(QWidget):
         self.init_ui()
         self.conectar_senales()
 
-        # Cargar corredores en segundo plano sin bloquear la GUI
-        asyncio.create_task(self.cargar_corredores())
-
-    async def cargar_corredores(self):
-        """Carga la lista inicial de corredores"""
-        try:
-            await self.viewmodel.cargar_corredores()
-        except Exception as e:
-            logger.error(f"❌ Error al cargar corredores: {e}")
-            self.mostrar_error(
-                "No se pudieron cargar los corredores. Por favor, intente más tarde."
-            )
+        # Cargar corredores iniciales
+        self.viewmodel.cargar_corredores()
 
     def cargar_estilos(self):
         """Carga los estilos desde el archivo .qss"""
@@ -116,12 +104,9 @@ class VistaCorredores(QWidget):
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Acciones
         self.tabla.setColumnWidth(0, 70)  # Ancho para número
         self.tabla.setColumnWidth(5, 100)  # Ancho para acciones
-        self.tabla.setAlternatingRowColors(True)  # Habilitar colores alternados en las filas
-        
-        # En lugar de usar setStyleSheet, estableceremos la propiedad desde el archivo QSS global
-        # y configuramos manualmente lo que no se puede hacer desde QSS
-        self.tabla.setGridStyle(Qt.PenStyle.DotLine)  # Estilo de línea punteada para la cuadrícula
-        self.tabla.setShowGrid(True)  # Asegurarse de que la cuadrícula sea visible
+        self.tabla.setAlternatingRowColors(True)
+        self.tabla.setGridStyle(Qt.PenStyle.DotLine)
+        self.tabla.setShowGrid(True)
 
         layout.addWidget(self.tabla)
 
@@ -159,7 +144,8 @@ class VistaCorredores(QWidget):
                     continue
 
             self.tabla.resizeColumnsToContents()
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error al actualizar la tabla: {e}")
             self.mostrar_error("Error al actualizar la tabla")
 
     def _agregar_botones_accion(self, i: int, corredor):
@@ -191,7 +177,7 @@ class VistaCorredores(QWidget):
         if texto:
             corredores_filtrados = self.viewmodel.filtrar_corredores(texto)
         else:
-            corredores_filtrados = self.viewmodel.corredores  # Restaurar lista completa
+            corredores_filtrados = self.viewmodel.corredores
         self.actualizar_tabla(corredores_filtrados)
 
     def handle_nuevo_corredor(self):
@@ -203,48 +189,17 @@ class VistaCorredores(QWidget):
             dialogo = DialogoCorredor(parent=self, model=self.viewmodel.item_model)
             dialogo.datos_guardados.connect(self._crear_corredor_slot)
             dialogo.exec()
-
         except Exception as e:
-            import traceback
-
             logger.error(f"❌ Error al mostrar diálogo: {e}")
-            logger.error(f"🔍 Detalles del error:\n{str(e)}")
-            logger.error(f"📋 Stack trace completo:\n{traceback.format_exc()}")
-            logger.error("🔍 Estado actual:")
-            logger.error(f"   ViewModel: {self.viewmodel}")
-            logger.error(f"   Modelo de datos: {self.viewmodel.item_model}")
             self.mostrar_error("Error al abrir el formulario de nuevo corredor")
 
     @pyqtSlot(dict)
     def _crear_corredor_slot(self, datos):
         """Slot que maneja la señal datos_guardados y crea el corredor"""
-        threading.Thread(target=self._run_async_task, args=(self._crear_corredor_async, datos), daemon=True).start()
-
-    def _run_async_task(self, coro_func, *args, **kwargs):
-        """Ejecuta una corrutina en un nuevo bucle de eventos"""
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            result = loop.run_until_complete(coro_func(*args, **kwargs))
-            loop.close()
-            return result
-        except Exception as e:
-            QMetaObject.invokeMethod(self, "mostrar_error", 
-                                    Qt.ConnectionType.QueuedConnection,
-                                    Q_ARG(str, f"Error: {str(e)}"))
-
-    async def _crear_corredor_async(self, datos: dict):
-        """Crea un nuevo corredor de forma asíncrona"""
-        try:
-            corredor = await self.viewmodel.crear_corredor(datos)
-            if corredor:
-                self.mostrar_mensaje("Corredor creado exitosamente")
-            else:
-                self.mostrar_error("No se pudo crear el corredor")
+            self.viewmodel.crear_corredor(datos)
         except Exception as e:
             self.mostrar_error(f"Error al crear el corredor: {str(e)}")
-
-        await self.cargar_corredores()
 
     def mostrar_dialogo_editar(self, id: int):
         """Muestra el diálogo para editar un corredor"""
@@ -256,8 +211,7 @@ class VistaCorredores(QWidget):
             dialogo = DialogoCorredor(self, corredor)
             if dialogo.exec():
                 datos = dialogo.obtener_datos()
-                # TODO: Implementar actualización de corredor
-                return
+                self.viewmodel.actualizar_corredor(id, datos)
 
     def confirmar_eliminar(self, id: int):
         """Muestra diálogo de confirmación para eliminar un corredor"""
@@ -273,21 +227,7 @@ class VistaCorredores(QWidget):
         )
 
         if respuesta == QMessageBox.StandardButton.Yes:
-            # TODO: Implementar eliminación de corredor
-            return
-
-    def mostrar_mensaje_procesando(self, mensaje: str):
-        """Muestra un mensaje de procesamiento"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setText(mensaje)
-        msg.setWindowTitle("Procesando")
-        msg.setStandardButtons(QMessageBox.StandardButton.NoButton)
-        # Mostrar el mensaje sin bloquear
-        msg.show()
-        # Procesar eventos para que se muestre el mensaje
-        QApplication.processEvents()
-        return msg
+            self.viewmodel.eliminar_corredor(id)
 
     def mostrar_error(self, mensaje: str):
         """Muestra un mensaje de error"""

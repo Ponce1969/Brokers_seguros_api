@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-import asyncio
 import logging
 
 from ..services.auth_service import AuthService
@@ -31,7 +30,7 @@ class LoginView(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Login - Sistema de Corredores")
-        self.setFixedSize(400, 400)  # Tamaño más compacto sin área de debug
+        self.setFixedSize(400, 400)
 
         # Resolver AuthService desde el contenedor
         auth_service = contenedor.resolver(AuthService)
@@ -94,8 +93,12 @@ class LoginView(QMainWindow):
         self.login_button = QPushButton("Ingresar")
         self.login_button.setMinimumHeight(40)
         # Cargar estilos desde el archivo QSS
-        with open('frontend/gui/resources/styles.qss', 'r') as f:
-            self.login_button.setStyleSheet(f.read())
+        try:
+            with open('frontend/gui/resources/styles.qss', 'r') as f:
+                self.login_button.setStyleSheet(f.read())
+        except Exception as e:
+            logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
+            
         self.login_button.clicked.connect(self._handle_login)
         main_layout.addWidget(self.login_button)
 
@@ -116,51 +119,36 @@ class LoginView(QMainWindow):
         # Realizar login
         self.login_button.setEnabled(False)
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._realizar_login())
+            success, message, data = self.viewmodel.login(email, password)
+            
+            if success:
+                try:
+                    # Crear el ViewModel del corredor con el token
+                    corredor_viewmodel = CorredorViewModel()
+                    if "access_token" in data:
+                        corredor_viewmodel.api.set_token(data["access_token"])
+
+                    # Crear la ventana principal
+                    self.ventana_principal = VentanaPrincipal(
+                        viewmodel_corredor=corredor_viewmodel,
+                        rol_usuario=self.viewmodel.get_user_role(),
+                    )
+
+                    # Mostrar la ventana principal
+                    self.ventana_principal.show()
+
+                    # Cerrar la ventana de login
+                    self.close()
+
+                except Exception as e:
+                    logger.error(f"Error al iniciar la aplicación: {e}")
+                    QMessageBox.critical(
+                        self, "Error", f"Error al iniciar la aplicación: {str(e)}"
+                    )
+            else:
+                QMessageBox.critical(self, "Error", message)
         except Exception as e:
+            logger.error(f"Error en el login: {e}")
             QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
         finally:
             self.login_button.setEnabled(True)
-
-    async def _realizar_login(self):
-        """Realiza el proceso de login de forma asíncrona"""
-        success, message, data = await self.viewmodel.login(
-            self.campos["mail"].text().strip(), self.campos["password"].text()
-        )
-
-        if success:
-            try:
-                # Obtener el servicio API del contenedor y asegurarnos de que tenga el token
-                from ..services.api_service import ServicioAPI
-
-                api_service = contenedor.resolver(ServicioAPI)
-
-                # Asegurarnos de que el token esté establecido
-                if "access_token" in data:
-                    api_service.establecer_token(data["access_token"])
-
-                # Crear el ViewModel del corredor
-                corredor_viewmodel = CorredorViewModel()
-
-                # Crear la ventana principal
-                self.ventana_principal = VentanaPrincipal(
-                    viewmodel_corredor=corredor_viewmodel,
-                    rol_usuario=self.viewmodel.get_user_role(),
-                )
-
-                # Mostrar la ventana principal
-                self.ventana_principal.show()
-
-                # Cerrar la ventana de login
-                self.close()
-
-            except Exception as e:
-                QMessageBox.critical(
-                    self, "Error", f"Error al iniciar la aplicación: {str(e)}"
-                )
-        else:
-            QMessageBox.critical(self, "Error", message)

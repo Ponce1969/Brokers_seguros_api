@@ -5,19 +5,20 @@ Punto de entrada principal de la aplicación
 import sys
 import logging
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtNetwork import QNetworkProxyFactory
 from frontend.gui.views.login_view import LoginView
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.WARNING,  # Nivel base más restrictivo
-    format='%(levelname)s - %(message)s',  # Formato más conciso
+    level=logging.WARNING,
+    format='%(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler()
     ]
 )
 
 # Configurar niveles específicos por módulo
-logging.getLogger('frontend.gui.services.api_service').setLevel(logging.WARNING)
+logging.getLogger('frontend.gui.services.network_manager').setLevel(logging.WARNING)
 logging.getLogger('frontend.gui.models').setLevel(logging.WARNING)
 logging.getLogger('frontend.gui.viewmodels').setLevel(logging.WARNING)
 logging.getLogger('frontend.gui.views').setLevel(logging.WARNING)
@@ -35,6 +36,9 @@ def main():
         os.environ["QT_LOGGING_RULES"] = "qt.qpa.style=false"
         
         app = QApplication(sys.argv)
+
+        # Configuración de red para QNetworkAccessManager
+        QNetworkProxyFactory.setUseSystemConfiguration(True)
 
         logger.info("🚀 Iniciando aplicación...")
 

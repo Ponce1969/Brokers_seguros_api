@@ -3,11 +3,10 @@ Contenedor de Inyección de Dependencias para la aplicación
 """
 
 import os
-import asyncio
 from typing import Dict, Type, Any
 from dataclasses import dataclass, field
 from dotenv import load_dotenv
-from ..services.api_service import ServicioAPI
+from ..services.network_manager import NetworkManager
 from ..services.auth_service import AuthService
 
 # Cargar variables de entorno
@@ -71,20 +70,16 @@ contenedor = ContenedorDI()
 # Configuración de la URL de la API
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
-# Asegurarse de que haya un event loop
-try:
-    loop = asyncio.get_event_loop()
-except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-# Configuración de servicios con parámetros mejorados
-servicio_api = ServicioAPI(
-    url_base=API_URL,
-    timeout=30,  # 30 segundos de timeout
-    cache_duration=5,  # 5 minutos de caché
-)
+# Crear instancias de servicios
+network_manager = NetworkManager(API_URL)
+auth_service = AuthService()
 
 # Registrar instancias de servicios
-contenedor.registrar_instancia(ServicioAPI, servicio_api)
-contenedor.registrar_instancia(AuthService, AuthService(servicio_api))
+contenedor.registrar_instancia(NetworkManager, network_manager)
+contenedor.registrar_instancia(AuthService, auth_service)
+
+# Registrar fábricas para servicios que necesiten crearse bajo demanda
+def crear_network_manager():
+    return NetworkManager(API_URL)
+
+contenedor.registrar_fabrica(NetworkManager, crear_network_manager)
