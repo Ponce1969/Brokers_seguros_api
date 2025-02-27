@@ -14,20 +14,14 @@ logger = logging.getLogger(__name__)
 class CorredorItemModel(QAbstractTableModel):
     """Modelo de datos para manejar corredores en widgets Qt"""
 
-    # Definir las columnas del modelo
+    # Definir las columnas del modelo y sus títulos
     COLUMNS = [
-        "numero",
-        "nombres",
-        "apellidos",
-        "documento",
-        "direccion",
-        "localidad",
-        "telefonos",
-        "movil",
-        "mail",
-        "observaciones",
-        "matricula",
-        "especializacion",
+        ("numero", "Número"),
+        ("nombre", "Nombre"),
+        ("email", "Email"),
+        ("telefono", "Teléfono"),
+        ("direccion", "Dirección"),
+        ("activo", "Estado"),
     ]
 
     def __init__(self, parent=None):
@@ -42,71 +36,44 @@ class CorredorItemModel(QAbstractTableModel):
         """Retorna el número de columnas en el modelo"""
         return len(self.COLUMNS)
 
+    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.ItemDataRole.DisplayRole) -> Any:
+        """Retorna los datos del encabezado"""
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
+            return self.COLUMNS[section][1]
+        return None
+
     def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole) -> Any:
         """Retorna los datos para el índice y rol especificados"""
         if not index.isValid():
             return None
 
-        if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             corredor = self._data[index.row()]
-            column_name = self.COLUMNS[index.column()]
-            return getattr(corredor, column_name, "")
+            column_name = self.COLUMNS[index.column()][0]
+            
+            if column_name == "activo":
+                return "Activo" if getattr(corredor, column_name, True) else "Inactivo"
+            
+            return str(getattr(corredor, column_name, ""))
 
         return None
-
-    def setData(
-        self, index: QModelIndex, value: Any, role=Qt.ItemDataRole.EditRole
-    ) -> bool:
-        """Establece los datos en el índice especificado"""
-        if not index.isValid() or role != Qt.ItemDataRole.EditRole:
-            return False
-
-        corredor = self._data[index.row()]
-        column_name = self.COLUMNS[index.column()]
-
-        try:
-            setattr(corredor, column_name, value)
-            self.dataChanged.emit(index, index, [role])
-            return True
-        except Exception:
-            return False
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Retorna los flags para el índice especificado"""
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
 
-        return (
-            Qt.ItemFlag.ItemIsEnabled
-            | Qt.ItemFlag.ItemIsSelectable
-            | Qt.ItemFlag.ItemIsEditable
-        )
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
     def _crear_corredor_default(self) -> Corredor:
-        """Crea un nuevo corredor con valores por defecto para todos los campos requeridos.
-
-        Este método se utiliza al insertar una nueva fila en el modelo, asegurando que el
-        objeto Corredor se inicialice correctamente con valores temporales o vacíos.
-
-        Returns:
-            Corredor: Un nuevo objeto Corredor con valores por defecto:
-                - id: vacío (se generará al guardar)
-                - numero: 0 (se generará al guardar)
-                - nombres: vacío (se llenará en el diálogo)
-                - apellidos: vacío (se llenará en el diálogo)
-                - documento: vacío (se llenará en el diálogo)
-                - mail: vacío (se llenará en el diálogo)
-                - matricula: vacío (se llenará en el diálogo)
-                - activo: True (valor por defecto)
-        """
+        """Crea un nuevo corredor con valores por defecto"""
         return Corredor(
-            id="",  # Se generará al guardar
-            numero=0,  # Se generará al guardar
-            nombres="",
-            apellidos="",
-            documento="",
-            mail="",
-            matricula="",
+            id=0,
+            numero=0,
+            email="",
+            nombre="",
+            telefono="",
+            direccion="",
             activo=True
         )
 
@@ -125,14 +92,7 @@ class CorredorItemModel(QAbstractTableModel):
         return True
 
     def addCorredor(self, corredor: Corredor) -> bool:
-        """Agrega un corredor al modelo
-
-        Args:
-            corredor: El corredor a agregar
-
-        Returns:
-            bool: True si se agregó correctamente, False en caso contrario
-        """
+        """Agrega un corredor al modelo"""
         try:
             logger.info(f"Agregando corredor al modelo: {corredor.__dict__}")
             row = len(self._data)
@@ -161,4 +121,10 @@ class CorredorItemModel(QAbstractTableModel):
         """Limpia todos los datos del modelo"""
         self.beginResetModel()
         self._data.clear()
+        self.endResetModel()
+
+    def updateCorredores(self, corredores: list[Corredor]):
+        """Actualiza la lista completa de corredores"""
+        self.beginResetModel()
+        self._data = corredores
         self.endResetModel()

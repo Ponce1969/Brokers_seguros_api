@@ -84,6 +84,7 @@ class CorredorViewModel(QObject):
                 except Exception as e:
                     logger.error(f"Error al procesar corredor: {e}")
             
+            self.item_model.updateCorredores(self.corredores)
             self.corredores_actualizados.emit(self.corredores)
             logger.info(f"✅ {len(self.corredores)} corredores cargados")
         except Exception as e:
@@ -95,7 +96,7 @@ class CorredorViewModel(QObject):
         try:
             logger.info("📥 Cargando lista de corredores...")
             self._current_operation = "cargar"
-            self.api.get("api/v1/corredores")
+            self.api.get("api/v1/corredores/")
         except Exception as e:
             logger.error(f"Error al iniciar carga de corredores: {e}")
             self.error_ocurrido.emit(str(e))
@@ -131,7 +132,7 @@ class CorredorViewModel(QObject):
             }
 
             self._current_operation = "crear"
-            self.api.post("api/v1/corredores", datos_api)
+            self.api.post("api/v1/corredores/", datos_api)
 
         except Exception as e:
             mensaje = f"Error al crear corredor: {str(e)}"
@@ -146,8 +147,7 @@ class CorredorViewModel(QObject):
             self.item_model.addCorredor(corredor)
             self.corredor_actualizado.emit(corredor)
             self.corredores_actualizados.emit(self.corredores)
-            mensaje_exito = f"Corredor {corredor.numero} creado exitosamente"
-            self.error_ocurrido.emit(mensaje_exito)
+            logger.info(f"✅ Corredor {corredor.numero} creado exitosamente")
         except Exception as e:
             logger.error(f"Error procesando corredor creado: {e}")
             self.error_ocurrido.emit(str(e))
@@ -165,19 +165,7 @@ class CorredorViewModel(QObject):
             self._current_operation = "actualizar"
             
             # Adaptar los datos al formato esperado por la API
-            datos_api = {
-                "nombres": datos.get("nombres"),
-                "apellidos": datos.get("apellidos"),
-                "documento": datos.get("documento"),
-                "direccion": datos.get("direccion"),
-                "localidad": datos.get("localidad"),
-                "telefonos": datos.get("telefonos"),
-                "movil": datos.get("movil"),
-                "mail": datos.get("mail"),
-                "matricula": datos.get("matricula"),
-                "especializacion": datos.get("especializacion"),
-                "fecha_baja": datos.get("fecha_baja"),
-            }
+            datos_api = {k: v for k, v in datos.items() if v is not None}
             
             self.api.put(f"api/v1/corredores/{id}", datos_api)
         except Exception as e:
@@ -194,6 +182,7 @@ class CorredorViewModel(QObject):
                 if c.id == corredor.id:
                     self.corredores[i] = corredor
                     break
+            self.item_model.updateCorredores(self.corredores)
             self.corredor_actualizado.emit(corredor)
             self.corredores_actualizados.emit(self.corredores)
             logger.info("✅ Corredor actualizado exitosamente")
@@ -223,6 +212,7 @@ class CorredorViewModel(QObject):
         try:
             if hasattr(self, '_corredor_a_eliminar'):
                 self.corredores = [c for c in self.corredores if c.id != self._corredor_a_eliminar]
+                self.item_model.updateCorredores(self.corredores)
                 self.corredores_actualizados.emit(self.corredores)
                 logger.info("✅ Corredor eliminado exitosamente")
                 delattr(self, '_corredor_a_eliminar')
@@ -253,14 +243,13 @@ class CorredorViewModel(QObject):
             List[Corredor]: Lista de corredores que coinciden
         """
         texto = texto.lower().strip()
-        return [
-            c
-            for c in self.corredores
-            if texto in f"{c.nombres} {c.apellidos}".lower()
-            or texto in c.mail.lower()
-            or texto in c.documento.lower()
-            or texto in str(c.numero)
-            or (c.telefonos and texto in c.telefonos.lower())
-            or (c.movil and texto in c.movil.lower())
-            or (c.matricula and texto in c.matricula.lower())
+        corredores_filtrados = [
+            c for c in self.corredores
+            if texto in str(c.numero).lower()
+            or texto in c.nombre.lower()
+            or texto in c.email.lower()
+            or texto in (c.telefono or "").lower()
+            or texto in (c.direccion or "").lower()
         ]
+        self.item_model.updateCorredores(corredores_filtrados)
+        return corredores_filtrados

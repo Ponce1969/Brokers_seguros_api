@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 import logging
-import asyncio
 from gui.viewmodels.corredor_viewmodel import CorredorViewModel
 from gui.core.excepciones import ErrorAPI, ErrorValidacion
 
@@ -30,6 +29,11 @@ class DialogoConfigInicial(QDialog):
         self.setWindowTitle("Configuración Inicial del Sistema")
         self.setModal(True)
         self.setMinimumWidth(400)
+        
+        # Conectar señales del viewmodel
+        self.viewmodel.error_ocurrido.connect(self._mostrar_error)
+        self.viewmodel.corredor_actualizado.connect(self._admin_creado)
+        
         self._inicializar_ui()
 
     def _inicializar_ui(self):
@@ -140,48 +144,51 @@ class DialogoConfigInicial(QDialog):
 
         return True
 
-    async def _crear_administrador_async(self):
-        """Crea el usuario administrador de forma asíncrona"""
-        datos = {
-            "numero": self.campo_numero.value(),
-            "nombres": self.campo_nombres.text().strip(),
-            "apellidos": self.campo_apellidos.text().strip(),
-            "documento": self.campo_documento.text().strip(),
-            "mail": self.campo_email.text().strip(),
-            "telefonos": self.campo_telefono.text().strip(),
-            "direccion": self.campo_direccion.text().strip(),
-            "localidad": self.campo_localidad.text().strip(),
-            "password": self.campo_password.text(),
-            "role": "admin",
-            "is_active": True,
-        }
-
-        await self.viewmodel.crear_corredor(**datos)
-
     def _crear_administrador(self):
         """Crea el usuario administrador"""
         if not self._validar_campos():
             return
 
         try:
-            # Ejecutar la creación del administrador de forma asíncrona
-            asyncio.run(self._crear_administrador_async())
+            datos = {
+                "numero": self.campo_numero.value(),
+                "nombres": self.campo_nombres.text().strip(),
+                "apellidos": self.campo_apellidos.text().strip(),
+                "documento": self.campo_documento.text().strip(),
+                "mail": self.campo_email.text().strip(),
+                "telefonos": self.campo_telefono.text().strip(),
+                "direccion": self.campo_direccion.text().strip(),
+                "localidad": self.campo_localidad.text().strip(),
+                "password": self.campo_password.text(),
+                "role": "admin",
+                "is_active": True,
+            }
 
-            QMessageBox.information(
-                self,
-                "Éxito",
-                "Administrador creado exitosamente.\n"
-                "Ahora puede iniciar sesión con su email y contraseña.",
-            )
-            self.accept()
+            # Deshabilitar el botón mientras se procesa
+            self.boton_crear.setEnabled(False)
+            self.boton_crear.setText("Creando administrador...")
+            
+            # Crear el administrador
+            self.viewmodel.crear_corredor(datos)
 
-        except ErrorValidacion as e:
-            QMessageBox.warning(self, "Error de Validación", str(e))
-        except ErrorAPI as e:
-            QMessageBox.critical(
-                self, "Error", f"Error al crear el administrador: {str(e)}"
-            )
-            logger.error(f"Error al crear administrador: {str(e)}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
+            self._mostrar_error(f"Error inesperado: {str(e)}")
             logger.error(f"Error inesperado al crear administrador: {str(e)}")
+            self.boton_crear.setEnabled(True)
+            self.boton_crear.setText("Crear Administrador")
+
+    def _mostrar_error(self, mensaje: str):
+        """Muestra un mensaje de error"""
+        QMessageBox.critical(self, "Error", mensaje)
+        self.boton_crear.setEnabled(True)
+        self.boton_crear.setText("Crear Administrador")
+
+    def _admin_creado(self, corredor):
+        """Maneja la creación exitosa del administrador"""
+        QMessageBox.information(
+            self,
+            "Éxito",
+            "Administrador creado exitosamente.\n"
+            "Ahora puede iniciar sesión con su email y contraseña.",
+        )
+        self.accept()
