@@ -1,3 +1,7 @@
+"""
+Endpoints para la gestión de corredores
+"""
+
 from typing import Any, List
 import logging
 
@@ -19,14 +23,18 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
 async def get_corredor_or_404(db: AsyncSession, corredor_id: int) -> Corredor:
     """
     Obtiene un corredor por ID o lanza un HTTPException 404 si no existe.
     """
     corredor = await corredor_crud.get(db, id=corredor_id)
     if not corredor:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Corredor no encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Corredor no encontrado"
+        )
     return corredor
+
 
 @router.get("/", response_model=List[CorredorResponse])
 async def get_corredores(
@@ -38,6 +46,7 @@ async def get_corredores(
     corredores = await corredor_crud.get_multi(db, skip=skip, limit=limit)
     return [CorredorResponse.model_validate(c, from_attributes=True) for c in corredores]
 
+
 @router.post("/", response_model=CorredorResponse, status_code=status.HTTP_201_CREATED)
 async def create_corredor(
     *, db: AsyncSession = Depends(get_db), corredor_in: CorredorCreate
@@ -45,8 +54,21 @@ async def create_corredor(
     """
     Crear nuevo corredor.
     """
-    corredor = await corredor_crud.create(db, obj_in=corredor_in)
-    return CorredorResponse.model_validate(corredor, from_attributes=True)
+    try:
+        corredor = await corredor_crud.create(db, obj_in=corredor_in)
+        return CorredorResponse.model_validate(corredor, from_attributes=True)
+    except IntegrityError as e:
+        logger.error(f"Error al crear corredor: {e}")
+        error_detail = "Error inesperado al crear el corredor"
+        if "unique constraint" in str(e.orig).lower():
+            if "numero" in str(e.orig).lower():
+                error_detail = "El número de corredor ya existe"
+            elif "documento" in str(e.orig).lower():
+                error_detail = "El documento ya está registrado"
+            elif "mail" in str(e.orig).lower():
+                error_detail = "El email ya está registrado"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_detail)
+
 
 @router.post("/admin", response_model=CorredorResponse, status_code=status.HTTP_201_CREATED)
 async def create_admin(
@@ -77,7 +99,9 @@ async def create_admin(
 
             corredor = await corredor_crud.create(db, obj_in=CorredorCreate(**corredor_data))
 
-        logger.info(f"Administrador creado exitosamente: ID={corredor.id}, Número={corredor.numero}")
+        logger.info(
+            f"Administrador creado exitosamente: ID={corredor.id}, Número={corredor.numero}"
+        )
         return CorredorResponse.model_validate(corredor, from_attributes=True)
 
     except IntegrityError as e:
@@ -87,10 +111,9 @@ async def create_admin(
             error_detail = "Número de corredor ya existe"
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_detail)
 
+
 @router.get("/numero/{numero}", response_model=CorredorResponse)
-async def get_corredor_by_numero(
-    numero: int, db: AsyncSession = Depends(get_db)
-) -> Any:
+async def get_corredor_by_numero(numero: int, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Obtener corredor por número.
     """
@@ -98,9 +121,10 @@ async def get_corredor_by_numero(
     if not corredor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Corredor con número {numero} no encontrado"
+            detail=f"Corredor con número {numero} no encontrado",
         )
     return CorredorResponse.model_validate(corredor, from_attributes=True)
+
 
 @router.get("/{corredor_id}", response_model=CorredorResponse)
 async def get_corredor(corredor_id: int, db: AsyncSession = Depends(get_db)) -> Any:
@@ -110,6 +134,7 @@ async def get_corredor(corredor_id: int, db: AsyncSession = Depends(get_db)) -> 
     corredor = await get_corredor_or_404(db, corredor_id)
     return CorredorResponse.model_validate(corredor, from_attributes=True)
 
+
 @router.put("/{corredor_id}", response_model=CorredorResponse)
 async def update_corredor(
     *, db: AsyncSession = Depends(get_db), corredor_id: int, corredor_in: CorredorUpdate
@@ -117,14 +142,23 @@ async def update_corredor(
     """
     Actualizar corredor.
     """
-    corredor = await get_corredor_or_404(db, corredor_id)
-    corredor = await corredor_crud.update(db, db_obj=corredor, obj_in=corredor_in)
-    return CorredorResponse.model_validate(corredor, from_attributes=True)
+    try:
+        corredor = await get_corredor_or_404(db, corredor_id)
+        corredor = await corredor_crud.update(db, db_obj=corredor, obj_in=corredor_in)
+        return CorredorResponse.model_validate(corredor, from_attributes=True)
+    except IntegrityError as e:
+        logger.error(f"Error al actualizar corredor: {e}")
+        error_detail = "Error inesperado al actualizar el corredor"
+        if "unique constraint" in str(e.orig).lower():
+            if "documento" in str(e.orig).lower():
+                error_detail = "El documento ya está registrado"
+            elif "mail" in str(e.orig).lower():
+                error_detail = "El email ya está registrado"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_detail)
+
 
 @router.delete("/{corredor_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_corredor(
-    *, db: AsyncSession = Depends(get_db), corredor_id: int
-) -> None:
+async def delete_corredor(*, db: AsyncSession = Depends(get_db), corredor_id: int) -> None:
     """
     Eliminar corredor.
     """

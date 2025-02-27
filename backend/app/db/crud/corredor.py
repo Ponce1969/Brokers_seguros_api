@@ -1,3 +1,7 @@
+"""
+CRUD para el modelo Corredor
+"""
+
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Type
 
@@ -107,7 +111,7 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
             await db.commit()
         return obj
 
-    async def create(self, db: AsyncSession, *, obj_in: CorredorCreate) -> dict:
+    async def create(self, db: AsyncSession, *, obj_in: CorredorCreate) -> Corredor:
         """
         Crea un nuevo corredor.
 
@@ -116,7 +120,7 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
             obj_in: Datos del corredor a crear
 
         Returns:
-            dict: Corredor creado en formato CorredorResponse
+            Corredor: Corredor creado
         """
         obj_data = obj_in.model_dump(exclude_unset=True)
         obj_data["fecha_alta"] = datetime.now(timezone.utc)
@@ -126,11 +130,11 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
         await db.commit()
         await db.refresh(db_obj)
 
-        return self._format_response(db_obj)
+        return db_obj
 
     async def get_multi(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100
-    ) -> list[dict]:
+    ) -> list[Corredor]:
         """
         Obtiene una lista de corredores.
 
@@ -140,13 +144,11 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
             limit: Límite de registros a retornar
 
         Returns:
-            List[dict]: Lista de corredores en formato CorredorResponse
+            List[Corredor]: Lista de corredores
         """
         query = select(self.model).offset(skip).limit(limit)
         result = await db.execute(query)
-        corredores = result.scalars().all()
-
-        return [self._format_response(c) for c in corredores]
+        return list(result.scalars().all())
 
     async def create_corredor_with_user(
         self,
@@ -165,12 +167,12 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
         is_superuser: bool = False,
         role: str = "corredor",
         observaciones: Optional[str] = None,
-    ) -> tuple[dict, Usuario]:
+    ) -> tuple[Corredor, Usuario]:
         """
         Crea un corredor y su usuario asociado en una sola operación.
 
         Returns:
-            tuple[dict, Usuario]: Tupla con el corredor (en formato CorredorResponse) y el usuario creado
+            tuple[Corredor, Usuario]: Tupla con el corredor y el usuario creado
         """
         fecha_alta = datetime.now(timezone.utc)
         corredor = Corredor(
@@ -208,7 +210,7 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
         await db.refresh(corredor)
         await db.refresh(usuario)
 
-        return self._format_response(corredor), usuario
+        return corredor, usuario
 
 
 corredor_crud = CRUDCorredor(Corredor)
