@@ -35,6 +35,11 @@ class LoginView(QMainWindow):
         # Resolver AuthService desde el contenedor
         auth_service = contenedor.resolver(AuthService)
         self.viewmodel = LoginViewModel(auth_service)
+        
+        # Conectar señales del ViewModel
+        self.viewmodel.login_successful.connect(self._handle_login_success)
+        self.viewmodel.login_failed.connect(self._handle_login_error)
+        
         self.init_ui()
 
         # Referencia a la ventana principal
@@ -119,36 +124,40 @@ class LoginView(QMainWindow):
         # Realizar login
         self.login_button.setEnabled(False)
         try:
-            success, message, data = self.viewmodel.login(email, password)
-            
-            if success:
-                try:
-                    # Crear el ViewModel del corredor con el token
-                    corredor_viewmodel = CorredorViewModel()
-                    if "access_token" in data:
-                        corredor_viewmodel.api.set_token(data["access_token"])
-
-                    # Crear la ventana principal
-                    self.ventana_principal = VentanaPrincipal(
-                        viewmodel_corredor=corredor_viewmodel,
-                        rol_usuario=self.viewmodel.get_user_role(),
-                    )
-
-                    # Mostrar la ventana principal
-                    self.ventana_principal.show()
-
-                    # Cerrar la ventana de login
-                    self.close()
-
-                except Exception as e:
-                    logger.error(f"Error al iniciar la aplicación: {e}")
-                    QMessageBox.critical(
-                        self, "Error", f"Error al iniciar la aplicación: {str(e)}"
-                    )
-            else:
-                QMessageBox.critical(self, "Error", message)
+            self.viewmodel.login(email, password)
         except Exception as e:
-            logger.error(f"Error en el login: {e}")
             QMessageBox.critical(self, "Error", f"Error inesperado: {str(e)}")
+            self.login_button.setEnabled(True)
+
+    def _handle_login_success(self, data: dict):
+        """Maneja el login exitoso"""
+        try:
+            # Crear el ViewModel del corredor con el token
+            corredor_viewmodel = CorredorViewModel()
+            if "access_token" in data:
+                corredor_viewmodel.api.set_token(data["access_token"])
+
+            # Crear la ventana principal
+            self.ventana_principal = VentanaPrincipal(
+                viewmodel_corredor=corredor_viewmodel,
+                rol_usuario=self.viewmodel.get_user_role(),
+            )
+
+            # Mostrar la ventana principal
+            self.ventana_principal.show()
+
+            # Cerrar la ventana de login
+            self.close()
+
+        except Exception as e:
+            logger.error(f"Error al iniciar la aplicación: {e}")
+            QMessageBox.critical(
+                self, "Error", f"Error al iniciar la aplicación: {str(e)}"
+            )
         finally:
             self.login_button.setEnabled(True)
+
+    def _handle_login_error(self, error_msg: str):
+        """Maneja los errores de login"""
+        QMessageBox.critical(self, "Error", error_msg)
+        self.login_button.setEnabled(True)

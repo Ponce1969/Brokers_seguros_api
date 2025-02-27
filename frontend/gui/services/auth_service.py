@@ -35,7 +35,7 @@ class AuthService(QObject):
         """Maneja las respuestas del servidor"""
         try:
             if self._current_operation == "login":
-                if "access_token" in response:
+                if isinstance(response, dict) and "access_token" in response:
                     logger.info("✅ Usuario autenticado con éxito")
                     self.api.set_token(response["access_token"])
                     self.auth_success.emit(response)
@@ -44,7 +44,7 @@ class AuthService(QObject):
                     self.auth_error.emit("Error de autenticación: Respuesta inválida")
             elif self._current_operation == "verify":
                 logger.debug("✅ Sesión válida")
-                self.auth_success.emit(response)
+                self.auth_success.emit(response if isinstance(response, dict) else {})
         except Exception as e:
             logger.error(f"❌ Error procesando respuesta: {e}")
             self.auth_error.emit(str(e))
@@ -77,8 +77,7 @@ class AuthService(QObject):
             # Preparar datos para la petición
             login_data = {
                 "username": email,
-                "password": password,
-                "grant_type": "password"
+                "password": password
             }
             
             # Realizar petición de login
