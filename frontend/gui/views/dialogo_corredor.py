@@ -7,25 +7,53 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QFormLayout,
     QLineEdit,
-    QPushButton,
     QDialogButtonBox,
     QMessageBox,
     QSpinBox,
+    QDataWidgetMapper,
 )
+from PyQt6.QtCore import pyqtSignal, QAbstractItemModel
 from typing import Optional, Dict
 import logging
+from datetime import datetime
 from ..models.corredor import Corredor
+from ..viewmodels.corredor_viewmodel import CorredorItemModel
 
 # Configurar logging
 logger = logging.getLogger(__name__)
 
+
 class DialogoCorredor(QDialog):
     """Diálogo para crear o editar un corredor"""
 
-    def __init__(self, parent=None, corredor: Optional[Corredor] = None):
+    # Señal para notificar que se han guardado los datos
+    datos_guardados = pyqtSignal(dict)
+
+    def __init__(
+        self,
+        parent=None,
+        corredor: Optional[Corredor] = None,
+        model: Optional[QAbstractItemModel] = None,
+    ):
         super().__init__(parent)
+        # Si no hay corredor, crear uno vacío con valores por defecto
+        if corredor is None:
+            corredor = Corredor(
+                id="",  # Se generará al guardar
+                numero=0,  # Se generará al guardar
+                nombres="",
+                apellidos="",
+                documento="",
+                mail="",
+                matricula="",  # Opcional ahora
+                activo=True,
+            )
         self.corredor = corredor
-        self.setWindowTitle("Nuevo Corredor" if not corredor else "Editar Corredor")
+        self.model = model or CorredorItemModel()
+        self.mapper = QDataWidgetMapper(self)
+        self.mapper.setModel(self.model)
+
+        self.setWindowTitle("Nuevo Corredor" if not corredor.id else "Editar Corredor")
         self.setModal(True)
         self.setMinimumWidth(400)
         self.init_ui()
@@ -50,31 +78,60 @@ class DialogoCorredor(QDialog):
         self.campos["numero"].setMaximum(99999)
         form_layout.addRow("Número *:", self.campos["numero"])
 
-        # Email (usuario)
-        self.campos["email"] = QLineEdit()
-        self.campos["email"].setPlaceholderText("correo@ejemplo.com")
-        form_layout.addRow("Email *:", self.campos["email"])
+        # Nombres
+        self.campos["nombres"] = QLineEdit()
+        self.campos["nombres"].setPlaceholderText("Nombres")
+        form_layout.addRow("Nombres *:", self.campos["nombres"])
 
-        # Contraseña
-        self.campos["password"] = QLineEdit()
-        self.campos["password"].setEchoMode(QLineEdit.EchoMode.Password)
-        self.campos["password"].setPlaceholderText("Contraseña para el corredor")
-        form_layout.addRow("Contraseña *:", self.campos["password"])
+        # Apellidos
+        self.campos["apellidos"] = QLineEdit()
+        self.campos["apellidos"].setPlaceholderText("Apellidos")
+        form_layout.addRow("Apellidos *:", self.campos["apellidos"])
 
-        # Nombre
-        self.campos["nombre"] = QLineEdit()
-        self.campos["nombre"].setPlaceholderText("Nombre completo")
-        form_layout.addRow("Nombre *:", self.campos["nombre"])
-
-        # Teléfono
-        self.campos["telefono"] = QLineEdit()
-        self.campos["telefono"].setPlaceholderText("+56 9 1234 5678")
-        form_layout.addRow("Teléfono:", self.campos["telefono"])
+        # Documento
+        self.campos["documento"] = QLineEdit()
+        self.campos["documento"].setPlaceholderText("Número de documento")
+        form_layout.addRow("Documento *:", self.campos["documento"])
 
         # Dirección
         self.campos["direccion"] = QLineEdit()
         self.campos["direccion"].setPlaceholderText("Dirección completa")
         form_layout.addRow("Dirección:", self.campos["direccion"])
+
+        # Localidad
+        self.campos["localidad"] = QLineEdit()
+        self.campos["localidad"].setPlaceholderText("Localidad")
+        form_layout.addRow("Localidad:", self.campos["localidad"])
+
+        # Teléfonos
+        self.campos["telefonos"] = QLineEdit()
+        self.campos["telefonos"].setPlaceholderText("Teléfonos fijos")
+        form_layout.addRow("Teléfonos:", self.campos["telefonos"])
+
+        # Móvil
+        self.campos["movil"] = QLineEdit()
+        self.campos["movil"].setPlaceholderText("Teléfono móvil")
+        form_layout.addRow("Móvil:", self.campos["movil"])
+
+        # Email
+        self.campos["mail"] = QLineEdit()
+        self.campos["mail"].setPlaceholderText("correo@ejemplo.com")
+        form_layout.addRow("Email *:", self.campos["mail"])
+
+        # Observaciones
+        self.campos["observaciones"] = QLineEdit()
+        self.campos["observaciones"].setPlaceholderText("Observaciones adicionales")
+        form_layout.addRow("Observaciones:", self.campos["observaciones"])
+
+        # Matrícula (opcional)
+        self.campos["matricula"] = QLineEdit()
+        self.campos["matricula"].setPlaceholderText("Número de matrícula (opcional)")
+        form_layout.addRow("Matrícula:", self.campos["matricula"])
+
+        # Especialización
+        self.campos["especializacion"] = QLineEdit()
+        self.campos["especializacion"].setPlaceholderText("Área de especialización")
+        form_layout.addRow("Especialización:", self.campos["especializacion"])
 
         layout.addLayout(form_layout)
 
@@ -86,76 +143,127 @@ class DialogoCorredor(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-        # Si estamos editando, llenar los campos
-        if self.corredor:
-            self.llenar_campos()
+        # Configurar el mapper después de crear los widgets
+        self.setup_mapper()
 
-    def llenar_campos(self):
-        """Llena los campos con los datos del corredor"""
-        if self.corredor.numero:
-            self.campos["numero"].setValue(self.corredor.numero)
-        self.campos["email"].setText(self.corredor.email)
-        self.campos["nombre"].setText(self.corredor.nombre)
-        if self.corredor.telefono:
-            self.campos["telefono"].setText(self.corredor.telefono)
-        if self.corredor.direccion:
-            self.campos["direccion"].setText(self.corredor.direccion)
-        # No llenamos la contraseña por seguridad
+    def setup_mapper(self):
+        """Configura el QDataWidgetMapper para enlazar los widgets con el modelo"""
+        # Mapear cada widget a su columna correspondiente en el modelo
+        self.mapper.addMapping(self.campos["numero"], 0)
+        self.mapper.addMapping(self.campos["nombres"], 1)
+        self.mapper.addMapping(self.campos["apellidos"], 2)
+        self.mapper.addMapping(self.campos["documento"], 3)
+        self.mapper.addMapping(self.campos["direccion"], 4)
+        self.mapper.addMapping(self.campos["localidad"], 5)
+        self.mapper.addMapping(self.campos["telefonos"], 6)
+        self.mapper.addMapping(self.campos["movil"], 7)
+        self.mapper.addMapping(self.campos["mail"], 8)
+        self.mapper.addMapping(self.campos["observaciones"], 9)
+        self.mapper.addMapping(self.campos["matricula"], 10)
+        self.mapper.addMapping(self.campos["especializacion"], 11)
+
+        # Si es un nuevo corredor, agregarlo al modelo
+        if not self.corredor.id:
+            self.model.insertRow(self.model.rowCount())
+            self.mapper.setCurrentIndex(self.model.rowCount() - 1)
+        else:
+            # Buscar el índice del corredor existente
+            for row in range(self.model.rowCount()):
+                if self.model.data(self.model.index(row, 0)) == self.corredor.numero:
+                    self.mapper.setCurrentIndex(row)
+                    break
 
     def validar_campos(self) -> tuple[bool, str]:
         """
         Valida los campos del formulario
-        
+
         Returns:
             tuple: (válido, mensaje de error)
         """
         # Validar campos requeridos
         if self.campos["numero"].value() <= 0:
             return False, "El número de corredor es requerido"
-        if not self.campos["email"].text().strip():
+        if not self.campos["nombres"].text().strip():
+            return False, "Los nombres son requeridos"
+        if not self.campos["apellidos"].text().strip():
+            return False, "Los apellidos son requeridos"
+        if not self.campos["documento"].text().strip():
+            return False, "El documento es requerido"
+        # La matrícula ya no es requerida
+        if not self.campos["mail"].text().strip():
             return False, "El email es requerido"
-        if not self.campos["password"].text().strip() and not self.corredor:
-            return False, "La contraseña es requerida para nuevos corredores"
-        if not self.campos["nombre"].text().strip():
-            return False, "El nombre es requerido"
 
         # Validar formato de email
-        email = self.campos["email"].text().strip()
+        email = self.campos["mail"].text().strip()
         if "@" not in email or "." not in email:
             return False, "El email no tiene un formato válido"
-
-        # Validar longitud mínima de contraseña para nuevos corredores
-        if not self.corredor and len(self.campos["password"].text()) < 8:
-            return False, "La contraseña debe tener al menos 8 caracteres"
 
         return True, ""
 
     def validar_y_aceptar(self):
         """Valida los campos y acepta el diálogo si son válidos"""
-        valido, mensaje = self.validar_campos()
-        if valido:
-            self.accept()
-        else:
-            QMessageBox.warning(self, "Error de Validación", mensaje)
+        logger.info("🔍 === INICIANDO VALIDACIÓN Y GUARDADO ===")
+        logger.info("1. Iniciando validación de campos...")
+
+        try:
+            valido, mensaje = self.validar_campos()
+            logger.info(
+                f"2. Resultado validación: {'✅ Válido' if valido else '❌ Inválido'} - {mensaje if not valido else ''}"
+            )
+
+            if valido:
+                logger.info("3. Campos válidos, obteniendo datos...")
+                datos = self.obtener_datos()
+                logger.info(f"4. Datos obtenidos: {datos}")
+
+                logger.info("5. Preparando emisión de señal...")
+                logger.info(f"   - Tipo de señal: {type(self.datos_guardados)}")
+
+                logger.info("6. Emitiendo señal...")
+                self.datos_guardados.emit(datos)
+                logger.info("7. Señal emitida exitosamente")
+
+                logger.info("8. Cerrando diálogo...")
+                self.accept()
+                logger.info("9. Diálogo cerrado exitosamente")
+
+                # Verificación adicional después del cierre
+                logger.info("10. Estado final:")
+                logger.info(f"    - Diálogo resultado: {self.result()}")
+                logger.info(f"    - Diálogo visible: {self.isVisible()}")
+            else:
+                logger.warning(f"⚠️ Validación fallida: {mensaje}")
+                QMessageBox.warning(self, "Error de Validación", mensaje)
+
+        except Exception as e:
+            import traceback
+            logger.error(f"❌ Error en validar_y_aceptar: {e}")
+            logger.error(f"Stack trace:\n{traceback.format_exc()}")
+            QMessageBox.critical(self, "Error", f"Error inesperado: {e}")
 
     def obtener_datos(self) -> Dict:
         """
-        Obtiene los datos del formulario
-        
+        Obtiene los datos del formulario directamente de los campos
+
         Returns:
             Dict: Diccionario con los datos del corredor
         """
+        logger.info("Obteniendo datos del formulario...")
         datos = {
             "numero": self.campos["numero"].value(),
-            "email": self.campos["email"].text().strip(),
-            "nombre": self.campos["nombre"].text().strip(),
-            "telefono": self.campos["telefono"].text().strip() or None,
+            "nombres": self.campos["nombres"].text().strip(),
+            "apellidos": self.campos["apellidos"].text().strip(),
+            "documento": self.campos["documento"].text().strip(),
             "direccion": self.campos["direccion"].text().strip() or None,
+            "localidad": self.campos["localidad"].text().strip() or None,
+            "telefonos": self.campos["telefonos"].text().strip() or None,
+            "movil": self.campos["movil"].text().strip() or None,
+            "mail": self.campos["mail"].text().strip(),
+            "observaciones": self.campos["observaciones"].text().strip() or None,
+            "matricula": self.campos["matricula"].text().strip() or "",
+            "especializacion": self.campos["especializacion"].text().strip() or None,
+            "fecha_alta": datetime.now().strftime("%Y-%m-%d"),
+            "activo": True,
         }
-        
-        # Solo incluir contraseña si se ha proporcionado una
-        password = self.campos["password"].text().strip()
-        if password:
-            datos["password"] = password
-            
+        logger.info(f"Datos obtenidos: {datos}")
         return datos

@@ -5,7 +5,6 @@ Servicio para manejar la autenticación de usuarios
 import logging
 from typing import Optional, Tuple
 from urllib.parse import urlencode
-from ..models.corredor import Corredor
 from .api_service import ServicioAPI
 from ..core.excepciones import ErrorAPI
 
@@ -17,11 +16,11 @@ class AuthService:
     """
     Clase para manejar la autenticación y gestión de sesiones de usuario
     """
-    
+
     def __init__(self, servicio_api: ServicioAPI):
         """
         Inicializa el servicio de autenticación
-        
+
         Args:
             servicio_api: Instancia del servicio API para comunicación con el backend
         """
@@ -32,11 +31,11 @@ class AuthService:
     ) -> Tuple[bool, str, Optional[dict]]:
         """
         Autenticar usuario con email y contraseña
-        
+
         Args:
             email: Correo electrónico del usuario
             password: Contraseña del usuario
-            
+
         Returns:
             Tupla con:
             - bool: True si la autenticación fue exitosa
@@ -45,19 +44,17 @@ class AuthService:
         """
         try:
             logger.info(f"🔑 Intentando login para usuario: {email}")
-            
+
             # Construir los datos del formulario como lo espera FastAPI OAuth2
-            form_data = urlencode({
-                "username": email,
-                "password": password,
-                "grant_type": "password"
-            })
-            
+            form_data = urlencode(
+                {"username": email, "password": password, "grant_type": "password"}
+            )
+
             # Hacer la petición de login
             data = await self.api.post(
-                "api/v1/login/access-token", 
+                "api/v1/login/access-token",
                 datos=form_data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
 
             if not data or "access_token" not in data:
@@ -98,7 +95,7 @@ class AuthService:
     async def verificar_sesion(self) -> bool:
         """
         Verifica si la sesión actual es válida
-        
+
         Returns:
             bool: True si la sesión es válida, False en caso contrario
         """

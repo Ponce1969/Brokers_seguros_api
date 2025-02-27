@@ -9,13 +9,14 @@ from ..services.auth_service import AuthService
 # Configurar logging
 logger = logging.getLogger(__name__)
 
+
 class LoginViewModel:
     """ViewModel para manejar la lógica de login"""
-    
+
     def __init__(self, auth_service: AuthService):
         """
         Inicializa el ViewModel
-        
+
         Args:
             auth_service: Servicio de autenticación
         """
@@ -25,11 +26,11 @@ class LoginViewModel:
     def validar_campos(self, email: str, password: str) -> Tuple[bool, str]:
         """
         Valida los campos del formulario de login
-        
+
         Args:
             email: Email a validar
             password: Contraseña a validar
-            
+
         Returns:
             Tuple[bool, str]: (válido, mensaje de error)
         """
@@ -43,21 +44,23 @@ class LoginViewModel:
             return False, "La contraseña debe tener al menos 6 caracteres"
         return True, ""
 
-    async def login(self, email: str, password: str) -> Tuple[bool, str, Optional[dict]]:
+    async def login(
+        self, email: str, password: str
+    ) -> Tuple[bool, str, Optional[dict]]:
         """
         Realiza el proceso de login
-        
+
         Args:
             email: Email del usuario
             password: Contraseña del usuario
-            
+
         Returns:
             Tuple[bool, str, Optional[dict]]: (éxito, mensaje, datos del token)
         """
         try:
             logger.info(f"🔑 Intentando login para usuario: {email}")
             success, message, data = await self.auth_service.login(email, password)
-            
+
             if success:
                 logger.info("✅ Login exitoso")
                 self.token_data = data
@@ -65,7 +68,7 @@ class LoginViewModel:
             else:
                 logger.warning(f"❌ Login fallido: {message}")
                 return False, message, None
-                
+
         except Exception as e:
             logger.error(f"❌ Error en login: {str(e)}")
             return False, f"Error en login: {str(e)}", None
@@ -73,7 +76,7 @@ class LoginViewModel:
     def get_token(self) -> Optional[str]:
         """
         Obtiene el token de autenticación actual
-        
+
         Returns:
             Optional[str]: Token de autenticación o None
         """
@@ -84,7 +87,7 @@ class LoginViewModel:
     def get_user_role(self) -> str:
         """
         Obtiene el rol del usuario autenticado
-        
+
         Returns:
             str: Rol del usuario ('admin' por defecto por ahora)
         """

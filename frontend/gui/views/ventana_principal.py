@@ -2,6 +2,8 @@
 Ventana principal de la aplicación
 """
 
+import asyncio
+import logging
 from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -12,13 +14,13 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt
-from gui.viewmodels.corredor_viewmodel import CorredorViewModel
-from gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
-from gui.views.corredor_view import VistaCorredores
-from gui.views.movimiento_vigencia_view import VistaMovimientosVigencia
-import logging
+from PyQt6.QtCore import Qt, QTimer
+from frontend.gui.viewmodels.corredor_viewmodel import CorredorViewModel
+from frontend.gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
+from frontend.gui.views.corredor_view import VistaCorredores
+from frontend.gui.views.movimiento_vigencia_view import VistaMovimientosVigencia
 
+# Configurar logging
 logger = logging.getLogger(__name__)
 
 
@@ -33,6 +35,24 @@ class VentanaPrincipal(QMainWindow):
         self.setWindowTitle("Broker Seguros - Sistema de Gestión")
         self.setGeometry(100, 100, 1200, 800)
         self._inicializar_ui()
+        # Cargar corredores después de inicializar la UI
+        QTimer.singleShot(0, self._cargar_corredores_async)
+
+    def _cargar_corredores_async(self):
+        """Inicia la carga asíncrona de corredores"""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.vista_corredores.cargar_corredores())
+        except Exception as e:
+            logger.error(f"Error al cargar corredores: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                "No se pudieron cargar los corredores. Por favor, intente más tarde.",
+            )
 
     def _inicializar_ui(self):
         """Inicializa la interfaz de usuario"""
@@ -53,55 +73,30 @@ class VentanaPrincipal(QMainWindow):
         # Título del panel de navegación
         titulo_nav = QLabel("Menú Principal")
         titulo_nav.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo_nav.setStyleSheet("""
-            QLabel {
-                font-size: 14px;
-                font-weight: bold;
-                padding: 10px;
-                background-color: #f8f9fa;
-                border-radius: 5px;
-                margin-bottom: 10px;
-            }
-        """)
+        titulo_nav.setObjectName("titulo_nav")
+        # Cargar estilos desde el archivo QSS
+        with open('frontend/gui/resources/styles.qss', 'r') as f:
+            titulo_nav.setStyleSheet(f.read())
         layout_navegacion.addWidget(titulo_nav)
-
-        # Estilo común para los botones
-        estilo_boton = """
-            QPushButton {
-                text-align: left;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                background-color: #007bff;
-                color: white;
-                font-size: 12px;
-                margin-bottom: 5px;
-            }
-            QPushButton:hover {
-                background-color: #0056b3;
-            }
-            QPushButton:pressed {
-                background-color: #004085;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """
 
         # Botones de navegación
         self.boton_corredores = QPushButton("Corredores")
-        self.boton_corredores.setStyleSheet(estilo_boton)
-        
         self.boton_clientes = QPushButton("Clientes")
-        self.boton_clientes.setStyleSheet(estilo_boton)
-        
         self.boton_movimientos = QPushButton("Movimientos Vigencias")
-        self.boton_movimientos.setStyleSheet(estilo_boton)
+
+        # Cargar estilos desde el archivo QSS
+        with open('frontend/gui/resources/styles.qss', 'r') as f:
+            qss = f.read()
+            self.boton_corredores.setStyleSheet(qss)
+            self.boton_clientes.setStyleSheet(qss)
+            self.boton_movimientos.setStyleSheet(qss)
 
         # Conectar botones a sus funciones
         self.boton_corredores.clicked.connect(lambda: self.cambiar_vista("corredores"))
         self.boton_clientes.clicked.connect(lambda: self.cambiar_vista("clientes"))
-        self.boton_movimientos.clicked.connect(lambda: self.cambiar_vista("movimientos"))
+        self.boton_movimientos.clicked.connect(
+            lambda: self.cambiar_vista("movimientos")
+        )
 
         # Agregar botones al layout de navegación
         layout_navegacion.addWidget(self.boton_corredores)
@@ -122,15 +117,13 @@ class VentanaPrincipal(QMainWindow):
 
         # Inicializar vistas
         self.vista_corredores = VistaCorredores(
-            self.viewmodel_corredor,
-            es_admin=es_admin
+            self.viewmodel_corredor, es_admin=es_admin
         )
         self.stack_vistas.addWidget(self.vista_corredores)
 
         # Vista de movimientos
         self.vista_movimientos = VistaMovimientosVigencia(
-            self.viewmodel_movimientos,
-            es_admin=es_admin
+            self.viewmodel_movimientos, es_admin=es_admin
         )
         self.stack_vistas.addWidget(self.vista_movimientos)
 
@@ -151,10 +144,10 @@ class VentanaPrincipal(QMainWindow):
     def configurar_permisos_rol(self):
         """Configura la visibilidad de los elementos según el rol del usuario"""
         es_admin = self.rol_usuario.lower() == "admin"
-        
+
         # El botón de corredores solo está disponible para administradores
         self.boton_corredores.setVisible(es_admin)
-        
+
         # Los demás botones están disponibles para todos los usuarios
         # pero su funcionalidad puede estar limitada según el rol
 
@@ -163,19 +156,19 @@ class VentanaPrincipal(QMainWindow):
         try:
             if vista == "corredores":
                 self.stack_vistas.setCurrentWidget(self.vista_corredores)
-                self.boton_corredores.setStyleSheet(self.boton_corredores.styleSheet() + "background-color: #004085;")
-                self.boton_clientes.setStyleSheet(self.boton_clientes.styleSheet().replace("background-color: #004085;", ""))
-                self.boton_movimientos.setStyleSheet(self.boton_movimientos.styleSheet().replace("background-color: #004085;", ""))
+                self.boton_corredores.setProperty("active", True)
+                self.boton_clientes.setProperty("active", False)
+                self.boton_movimientos.setProperty("active", False)
             elif vista == "clientes":
                 self.stack_vistas.setCurrentWidget(self.vista_clientes)
-                self.boton_clientes.setStyleSheet(self.boton_clientes.styleSheet() + "background-color: #004085;")
-                self.boton_corredores.setStyleSheet(self.boton_corredores.styleSheet().replace("background-color: #004085;", ""))
-                self.boton_movimientos.setStyleSheet(self.boton_movimientos.styleSheet().replace("background-color: #004085;", ""))
+                self.boton_corredores.setProperty("active", False)
+                self.boton_clientes.setProperty("active", True)
+                self.boton_movimientos.setProperty("active", False)
             elif vista == "movimientos":
                 self.stack_vistas.setCurrentWidget(self.vista_movimientos)
-                self.boton_movimientos.setStyleSheet(self.boton_movimientos.styleSheet() + "background-color: #004085;")
-                self.boton_corredores.setStyleSheet(self.boton_corredores.styleSheet().replace("background-color: #004085;", ""))
-                self.boton_clientes.setStyleSheet(self.boton_clientes.styleSheet().replace("background-color: #004085;", ""))
+                self.boton_corredores.setProperty("active", False)
+                self.boton_clientes.setProperty("active", False)
+                self.boton_movimientos.setProperty("active", True)
         except Exception as e:
             logger.error(f"Error al cambiar vista: {str(e)}")
             QMessageBox.critical(

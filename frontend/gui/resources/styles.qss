@@ -1,0 +1,69 @@
+/* Estilos generales para QDialog y QMainWindow */
+QDialog, QMainWindow {
+    background-color: #f0f0f0;
+}
+
+/* Estilos para botones */
+QPushButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    text-align: left;
+    font-size: 12px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+
+QPushButton:hover {
+    background-color: #0056b3;
+}
+
+QPushButton:pressed {
+    background-color: #004085;
+}
+
+QPushButton:disabled {
+    background-color: #6c757d;
+}
+
+/* Estado activo para botones de navegación */
+QPushButton[active="true"] {
+    background-color: #004085;
+}
+
+/* Estilos para etiquetas */
+QLabel {
+    color: #333;
+    font-size: 14px;
+}
+
+/* Estilo especial para título de navegación */
+QLabel#titulo_nav {
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Estilos para campos de texto */
+QLineEdit {
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+QLineEdit:focus {
+    border: 1px solid #007bff;
+}
+
+/* Estilos para el botón de login */
+QPushButton#login_button {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 40px;
+}

@@ -4,39 +4,38 @@ Punto de entrada principal de la aplicación
 
 import sys
 import logging
-import asyncio
-import signal
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QTimer
-from gui.views.login_view import LoginView
+from frontend.gui.views.login_view import LoginView
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.WARNING,  # Nivel base más restrictivo
+    format='%(levelname)s - %(message)s',  # Formato más conciso
+    handlers=[
+        logging.StreamHandler()
+    ]
 )
-logger = logging.getLogger(__name__)
 
-def handle_exception(loop, context):
-    """Manejador global de excepciones para el event loop"""
-    logger.error(f"❌ Error en el event loop: {context}")
+# Configurar niveles específicos por módulo
+logging.getLogger('frontend.gui.services.api_service').setLevel(logging.WARNING)
+logging.getLogger('frontend.gui.models').setLevel(logging.WARNING)
+logging.getLogger('frontend.gui.viewmodels').setLevel(logging.WARNING)
+logging.getLogger('frontend.gui.views').setLevel(logging.WARNING)
+
+# Solo mostrar logs importantes de la aplicación principal
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def main():
     """Función principal que inicia la aplicación"""
     try:
-        # Crear la aplicación Qt
+        # Suprimir mensajes de advertencia sobre propiedades QSS no reconocidas
+        import os
+        os.environ["QT_LOGGING_RULES"] = "qt.qpa.style=false"
+        
         app = QApplication(sys.argv)
-        
-        # Configurar el event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.set_exception_handler(handle_exception)
-        
-        # Crear timer para procesar el event loop
-        timer = QTimer()
-        timer.timeout.connect(lambda: loop.stop() if loop.is_running() else None)
-        timer.start(50)  # 50ms interval
-        
+
         logger.info("🚀 Iniciando aplicación...")
 
         # Crear y mostrar la ventana de login
@@ -51,24 +50,12 @@ def main():
         logger.info("✨ Mostrando ventana de login")
         login_window.show()
 
-        # Configurar el manejador de señales para limpieza
-        def signal_handler(signum, frame):
-            logger.info("🛑 Señal de terminación recibida")
-            loop.stop()
-            app.quit()
-        
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
-        # Iniciar el loop de eventos
         return app.exec()
 
     except Exception as e:
         logger.error(f"❌ Error al iniciar la aplicación: {str(e)}")
-        raise
-    finally:
-        if 'loop' in locals():
-            loop.close()
+        return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

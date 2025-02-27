@@ -4,14 +4,15 @@ PyQt6-Qt6>=6.8.2
 PyQt6_sip>=13.10.0
 requests>=2.32.3
 python-dotenv==1.0.0
-aiohttp>=3.9.3  # Para peticiones HTTP asíncronas
+aiohttp>=3.9.3  # Para peticiones HTTP asíncronas
 aiosignal>=1.3.1  # Requerido por aiohttp
 async-timeout>=4.0.3  # Requerido por aiohttp
 attrs>=23.2.0  # Requerido por aiohttp
 frozenlist>=1.4.1  # Requerido por aiohttp
 multidict>=6.0.5  # Requerido por aiohttp
 yarl>=1.9.4  # Requerido por aiohttp
-tenacity>=8.2.3  # Para reintentos automáticos
+tenacity>=8.2.3  # Para reintentos automatizados
+qasync==0.27.1 # Para asyncio
 
 # Utilidades y herramientas de desarrollo
 black>=25.1.0  # Formateador de código

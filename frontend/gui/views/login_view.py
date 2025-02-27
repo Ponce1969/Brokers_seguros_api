@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
@@ -26,6 +25,7 @@ from ..viewmodels.corredor_viewmodel import CorredorViewModel
 
 # Configurar logging
 logger = logging.getLogger(__name__)
+
 
 class LoginView(QMainWindow):
     def __init__(self):
@@ -93,22 +93,9 @@ class LoginView(QMainWindow):
         # Botón de login
         self.login_button = QPushButton("Ingresar")
         self.login_button.setMinimumHeight(40)
-        self.login_button.setStyleSheet("""
-            QPushButton {
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0056b3;
-            }
-            QPushButton:pressed {
-                background-color: #004085;
-            }
-        """)
+        # Cargar estilos desde el archivo QSS
+        with open('frontend/gui/resources/styles.qss', 'r') as f:
+            self.login_button.setStyleSheet(f.read())
         self.login_button.clicked.connect(self._handle_login)
         main_layout.addWidget(self.login_button)
 
@@ -142,32 +129,38 @@ class LoginView(QMainWindow):
     async def _realizar_login(self):
         """Realiza el proceso de login de forma asíncrona"""
         success, message, data = await self.viewmodel.login(
-            self.campos["mail"].text().strip(),
-            self.campos["password"].text()
+            self.campos["mail"].text().strip(), self.campos["password"].text()
         )
 
         if success:
             try:
+                # Obtener el servicio API del contenedor y asegurarnos de que tenga el token
+                from ..services.api_service import ServicioAPI
+
+                api_service = contenedor.resolver(ServicioAPI)
+
+                # Asegurarnos de que el token esté establecido
+                if "access_token" in data:
+                    api_service.establecer_token(data["access_token"])
+
                 # Crear el ViewModel del corredor
                 corredor_viewmodel = CorredorViewModel()
-                
+
                 # Crear la ventana principal
                 self.ventana_principal = VentanaPrincipal(
                     viewmodel_corredor=corredor_viewmodel,
-                    rol_usuario=self.viewmodel.get_user_role()
+                    rol_usuario=self.viewmodel.get_user_role(),
                 )
-                
+
                 # Mostrar la ventana principal
                 self.ventana_principal.show()
-                
+
                 # Cerrar la ventana de login
                 self.close()
-                
+
             except Exception as e:
                 QMessageBox.critical(
-                    self,
-                    "Error",
-                    f"Error al iniciar la aplicación: {str(e)}"
+                    self, "Error", f"Error al iniciar la aplicación: {str(e)}"
                 )
         else:
             QMessageBox.critical(self, "Error", message)

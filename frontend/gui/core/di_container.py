@@ -13,6 +13,7 @@ from ..services.auth_service import AuthService
 # Cargar variables de entorno
 load_dotenv()
 
+
 @dataclass
 class ContenedorDI:
     """Contenedor para inyección de dependencias"""
@@ -23,7 +24,7 @@ class ContenedorDI:
     def registrar_instancia(self, tipo_interfaz: Type, instancia: Any) -> None:
         """
         Registra una instancia para un tipo
-        
+
         Args:
             tipo_interfaz: Tipo de la interfaz
             instancia: Instancia a registrar
@@ -33,7 +34,7 @@ class ContenedorDI:
     def registrar_fabrica(self, tipo_interfaz: Type, fabrica) -> None:
         """
         Registra una función fábrica para un tipo
-        
+
         Args:
             tipo_interfaz: Tipo de la interfaz
             fabrica: Función fábrica que crea instancias
@@ -43,13 +44,13 @@ class ContenedorDI:
     def resolver(self, tipo_interfaz: Type) -> Any:
         """
         Resuelve una instancia para un tipo
-        
+
         Args:
             tipo_interfaz: Tipo de la interfaz a resolver
-            
+
         Returns:
             Any: Instancia del tipo solicitado
-            
+
         Raises:
             Exception: Si no se encuentra registro para el tipo
         """
@@ -81,7 +82,7 @@ except RuntimeError:
 servicio_api = ServicioAPI(
     url_base=API_URL,
     timeout=30,  # 30 segundos de timeout
-    cache_duration=5  # 5 minutos de caché
+    cache_duration=5,  # 5 minutos de caché
 )
 
 # Registrar instancias de servicios

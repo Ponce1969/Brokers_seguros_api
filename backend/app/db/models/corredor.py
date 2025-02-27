@@ -8,7 +8,8 @@ class Corredor(Base):
     __tablename__ = "corredores"
 
     # Identificación
-    numero = Column(Integer, primary_key=True)  # Número de corredor
+    id = Column(Integer, primary_key=True, autoincrement=True)  # ID autogenerado
+    numero = Column(Integer, unique=True, nullable=False)  # Número de corredor ingresado por el admin
     nombres = Column(String(30))  # Nombres del corredor
     apellidos = Column(String(30), nullable=False)  # Apellidos del corredor
     documento = Column(String(20), nullable=False, unique=True)  # Número de documento
