@@ -9,6 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 from ..models.movimiento_vigencia import MovimientoVigencia
 from ..core.excepciones import ErrorAPI
+from ..services.network_manager import NetworkManager
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -29,8 +30,48 @@ class MovimientoVigenciaViewModel(QObject):
         super().__init__()
         self.movimientos: List[MovimientoVigencia] = []
         self.movimiento_actual: Optional[MovimientoVigencia] = None
+        
+        # Inicializar NetworkManager
+        self.api = NetworkManager()
+        self.api.response_received.connect(self._handle_response)
+        self.api.error_occurred.connect(self._handle_error)
+        
+        # Variable para rastrear la operación actual
+        self._current_operation = None
+        self._current_params = None
 
-    async def cargar_movimientos(self, corredor_id: Optional[int] = None) -> None:
+    def _handle_error(self, error_msg: str):
+        """Maneja los errores del NetworkManager"""
+        logger.error(f"Error en la operación {self._current_operation}: {error_msg}")
+        self.error_ocurrido.emit(error_msg)
+
+    def _handle_response(self, response):
+        """Maneja las respuestas del servidor según la operación actual"""
+        try:
+            if self._current_operation == "cargar":
+                if isinstance(response, list):
+                    self._procesar_lista_movimientos(response)
+                else:
+                    logger.error("Respuesta inesperada al cargar movimientos")
+                    self.error_ocurrido.emit("Formato de respuesta inválido")
+            elif self._current_operation == "crear":
+                if isinstance(response, dict):
+                    self._procesar_movimiento_creado(response)
+                else:
+                    self.error_ocurrido.emit("Respuesta inválida al crear movimiento")
+            elif self._current_operation == "actualizar":
+                if isinstance(response, dict):
+                    self._procesar_movimiento_actualizado(response)
+                else:
+                    self.error_ocurrido.emit("Respuesta inválida al actualizar movimiento")
+        except Exception as e:
+            logger.error(f"Error procesando respuesta: {e}")
+            self.error_ocurrido.emit(str(e))
+        finally:
+            self._current_operation = None
+            self._current_params = None
+
+    def cargar_movimientos(self, corredor_id: Optional[int] = None) -> None:
         """
         Carga la lista de movimientos desde el servidor
 
@@ -39,79 +80,93 @@ class MovimientoVigenciaViewModel(QObject):
         """
         try:
             logger.info("📥 Cargando lista de movimientos...")
-            # TODO: Implementar llamada a la API
-            # endpoint = f"api/v1/movimientos_vigencia"
-            # if corredor_id:
-            #     endpoint += f"?corredor_id={corredor_id}"
-            # self.movimientos = await self.api.get(endpoint)
-            # self.movimientos_actualizados.emit(self.movimientos)
-            logger.info(f"✅ {len(self.movimientos)} movimientos cargados")
-        except ErrorAPI as e:
+            self._current_operation = "cargar"
+            endpoint = "api/v1/movimientos_vigencia/"
+            if corredor_id:
+                endpoint += f"?corredor_id={corredor_id}"
+            self.api.get(endpoint)
+        except Exception as e:
             mensaje = f"Error al cargar movimientos: {str(e)}"
             logger.error(f"❌ {mensaje}")
             self.error_ocurrido.emit(mensaje)
-        except Exception as e:
-            mensaje = f"Error inesperado al cargar movimientos: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
 
-    async def crear_movimiento(self, datos: dict) -> Optional[MovimientoVigencia]:
+    def _procesar_lista_movimientos(self, response: List[dict]) -> None:
+        """Procesa la lista de movimientos recibida del servidor"""
+        try:
+            self.movimientos = []
+            for movimiento_data in response:
+                try:
+                    movimiento = MovimientoVigencia.from_dict(movimiento_data)
+                    self.movimientos.append(movimiento)
+                except Exception as e:
+                    logger.error(f"Error al procesar movimiento: {e}")
+            
+            self.movimientos_actualizados.emit(self.movimientos)
+            logger.info(f"✅ {len(self.movimientos)} movimientos cargados")
+        except Exception as e:
+            logger.error(f"Error procesando lista de movimientos: {e}")
+            self.error_ocurrido.emit(f"Error al procesar los datos: {str(e)}")
+
+    def crear_movimiento(self, datos: dict) -> None:
         """
         Crea un nuevo movimiento de vigencia
 
         Args:
             datos: Diccionario con los datos del movimiento
-
-        Returns:
-            MovimientoVigencia: El movimiento creado o None si hubo error
         """
         try:
             logger.info("📝 Creando nuevo movimiento...")
-            # TODO: Implementar llamada a la API
-            # movimiento = await self.api.post("api/v1/movimientos_vigencia", datos)
-            # self.movimientos.append(movimiento)
-            # self.movimiento_actualizado.emit(movimiento)
-            # return movimiento
-            logger.info("✅ Movimiento creado exitosamente")
-        except ErrorAPI as e:
+            self._current_operation = "crear"
+            self.api.post("api/v1/movimientos_vigencia/", datos)
+        except Exception as e:
             mensaje = f"Error al crear movimiento: {str(e)}"
             logger.error(f"❌ {mensaje}")
             self.error_ocurrido.emit(mensaje)
-        except Exception as e:
-            mensaje = f"Error inesperado al crear movimiento: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
-        return None
 
-    async def actualizar_movimiento(
-        self, id: int, datos: dict
-    ) -> Optional[MovimientoVigencia]:
+    def _procesar_movimiento_creado(self, response: dict) -> None:
+        """Procesa la respuesta después de crear un movimiento"""
+        try:
+            movimiento = MovimientoVigencia.from_dict(response)
+            self.movimientos.append(movimiento)
+            self.movimiento_actualizado.emit(movimiento)
+            self.movimientos_actualizados.emit(self.movimientos)
+            logger.info("✅ Movimiento creado exitosamente")
+        except Exception as e:
+            logger.error(f"Error procesando movimiento creado: {e}")
+            self.error_ocurrido.emit(str(e))
+
+    def actualizar_movimiento(self, id: int, datos: dict) -> None:
         """
         Actualiza un movimiento existente
 
         Args:
             id: ID del movimiento a actualizar
             datos: Diccionario con los datos actualizados
-
-        Returns:
-            MovimientoVigencia: El movimiento actualizado o None si hubo error
         """
         try:
             logger.info(f"📝 Actualizando movimiento {id}...")
-            # TODO: Implementar llamada a la API
-            # movimiento = await self.api.put(f"api/v1/movimientos_vigencia/{id}", datos)
-            # self.movimiento_actualizado.emit(movimiento)
-            # return movimiento
-            logger.info("✅ Movimiento actualizado exitosamente")
-        except ErrorAPI as e:
+            self._current_operation = "actualizar"
+            self.api.put(f"api/v1/movimientos_vigencia/{id}", datos)
+        except Exception as e:
             mensaje = f"Error al actualizar movimiento: {str(e)}"
             logger.error(f"❌ {mensaje}")
             self.error_ocurrido.emit(mensaje)
+
+    def _procesar_movimiento_actualizado(self, response: dict) -> None:
+        """Procesa la respuesta después de actualizar un movimiento"""
+        try:
+            movimiento = MovimientoVigencia.from_dict(response)
+            # Actualizar la lista local
+            for i, m in enumerate(self.movimientos):
+                if m.id == movimiento.id:
+                    self.movimientos[i] = movimiento
+                    break
+            self.movimiento_actualizado.emit(movimiento)
+            self.movimientos_actualizados.emit(self.movimientos)
+            logger.info("✅ Movimiento actualizado exitosamente")
         except Exception as e:
-            mensaje = f"Error inesperado al actualizar movimiento: {str(e)}"
-            logger.error(f"❌ {mensaje}")
-            self.error_ocurrido.emit(mensaje)
-        return None
+            logger.error(f"Error procesando movimiento actualizado: {e}")
+            self.error_ocurrido.emit(str(e))
 
     def buscar_movimiento(self, id: int) -> Optional[MovimientoVigencia]:
         """
