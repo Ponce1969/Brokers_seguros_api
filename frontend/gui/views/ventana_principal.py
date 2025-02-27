@@ -2,7 +2,6 @@
 Ventana principal de la aplicación
 """
 
-import asyncio
 import logging
 from PyQt6.QtWidgets import (
     QMainWindow,
@@ -14,7 +13,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from frontend.gui.viewmodels.corredor_viewmodel import CorredorViewModel
 from frontend.gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
 from frontend.gui.views.corredor_view import VistaCorredores
@@ -35,24 +34,9 @@ class VentanaPrincipal(QMainWindow):
         self.setWindowTitle("Broker Seguros - Sistema de Gestión")
         self.setGeometry(100, 100, 1200, 800)
         self._inicializar_ui()
-        # Cargar corredores después de inicializar la UI
-        QTimer.singleShot(0, self._cargar_corredores_async)
-
-    def _cargar_corredores_async(self):
-        """Inicia la carga asíncrona de corredores"""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.vista_corredores.cargar_corredores())
-        except Exception as e:
-            logger.error(f"Error al cargar corredores: {e}")
-            QMessageBox.critical(
-                self,
-                "Error",
-                "No se pudieron cargar los corredores. Por favor, intente más tarde.",
-            )
+        
+        # Cargar datos iniciales
+        self.viewmodel_corredor.cargar_corredores()
 
     def _inicializar_ui(self):
         """Inicializa la interfaz de usuario"""
@@ -75,8 +59,12 @@ class VentanaPrincipal(QMainWindow):
         titulo_nav.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo_nav.setObjectName("titulo_nav")
         # Cargar estilos desde el archivo QSS
-        with open('frontend/gui/resources/styles.qss', 'r') as f:
-            titulo_nav.setStyleSheet(f.read())
+        try:
+            with open('frontend/gui/resources/styles.qss', 'r') as f:
+                titulo_nav.setStyleSheet(f.read())
+        except Exception as e:
+            logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
+
         layout_navegacion.addWidget(titulo_nav)
 
         # Botones de navegación
@@ -85,11 +73,14 @@ class VentanaPrincipal(QMainWindow):
         self.boton_movimientos = QPushButton("Movimientos Vigencias")
 
         # Cargar estilos desde el archivo QSS
-        with open('frontend/gui/resources/styles.qss', 'r') as f:
-            qss = f.read()
-            self.boton_corredores.setStyleSheet(qss)
-            self.boton_clientes.setStyleSheet(qss)
-            self.boton_movimientos.setStyleSheet(qss)
+        try:
+            with open('frontend/gui/resources/styles.qss', 'r') as f:
+                qss = f.read()
+                self.boton_corredores.setStyleSheet(qss)
+                self.boton_clientes.setStyleSheet(qss)
+                self.boton_movimientos.setStyleSheet(qss)
+        except Exception as e:
+            logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
 
         # Conectar botones a sus funciones
         self.boton_corredores.clicked.connect(lambda: self.cambiar_vista("corredores"))
@@ -169,6 +160,15 @@ class VentanaPrincipal(QMainWindow):
                 self.boton_corredores.setProperty("active", False)
                 self.boton_clientes.setProperty("active", False)
                 self.boton_movimientos.setProperty("active", True)
+
+            # Forzar actualización de estilos
+            self.boton_corredores.style().unpolish(self.boton_corredores)
+            self.boton_corredores.style().polish(self.boton_corredores)
+            self.boton_clientes.style().unpolish(self.boton_clientes)
+            self.boton_clientes.style().polish(self.boton_clientes)
+            self.boton_movimientos.style().unpolish(self.boton_movimientos)
+            self.boton_movimientos.style().polish(self.boton_movimientos)
+
         except Exception as e:
             logger.error(f"Error al cambiar vista: {str(e)}")
             QMessageBox.critical(

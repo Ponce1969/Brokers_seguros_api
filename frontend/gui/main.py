@@ -7,6 +7,8 @@ import logging
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtNetwork import QNetworkProxyFactory
 from frontend.gui.views.login_view import LoginView
+from frontend.gui.core.di_container import contenedor
+from frontend.gui.services.network_manager import NetworkManager
 
 # Configurar logging
 logging.basicConfig(
@@ -35,12 +37,16 @@ def main():
         import os
         os.environ["QT_LOGGING_RULES"] = "qt.qpa.style=false"
         
+        # Inicializar la aplicación Qt
         app = QApplication(sys.argv)
 
         # Configuración de red para QNetworkAccessManager
         QNetworkProxyFactory.setUseSystemConfiguration(True)
 
         logger.info("🚀 Iniciando aplicación...")
+
+        # Asegurarse de que el NetworkManager esté inicializado
+        network_manager = contenedor.resolver(NetworkManager)
 
         # Crear y mostrar la ventana de login
         login_window = LoginView()
