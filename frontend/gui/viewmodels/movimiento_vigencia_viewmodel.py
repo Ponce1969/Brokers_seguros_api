@@ -25,14 +25,21 @@ class MovimientoVigenciaViewModel(QObject):
     movimientos_actualizados = pyqtSignal(list)
     error_ocurrido = pyqtSignal(str)
 
-    def __init__(self):
-        """Inicializa el ViewModel de movimientos de vigencia"""
+    def __init__(self, network_manager=None):
+        """
+        Inicializa el ViewModel de movimientos de vigencia
+        
+        Args:
+            network_manager: Instancia del NetworkManager (opcional)
+        """
         super().__init__()
         self.movimientos: List[MovimientoVigencia] = []
         self.movimiento_actual: Optional[MovimientoVigencia] = None
         
         # Inicializar NetworkManager
-        self.api = NetworkManager()
+        from ..core.di_container import contenedor
+        from ..services.network_manager import NetworkManager
+        self.api = network_manager if network_manager is not None else contenedor.resolver(NetworkManager)
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
         
@@ -79,7 +86,7 @@ class MovimientoVigenciaViewModel(QObject):
             corredor_id: ID del corredor para filtrar movimientos (opcional)
         """
         try:
-            logger.info("📥 Cargando lista de movimientos...")
+            logger.info(" Cargando lista de movimientos...")
             self._current_operation = "cargar"
             endpoint = "api/v1/movimientos_vigencia/"
             if corredor_id:
@@ -87,7 +94,7 @@ class MovimientoVigenciaViewModel(QObject):
             self.api.get(endpoint)
         except Exception as e:
             mensaje = f"Error al cargar movimientos: {str(e)}"
-            logger.error(f"❌ {mensaje}")
+            logger.error(f" {mensaje}")
             self.error_ocurrido.emit(mensaje)
 
     def _procesar_lista_movimientos(self, response: List[dict]) -> None:
@@ -102,7 +109,7 @@ class MovimientoVigenciaViewModel(QObject):
                     logger.error(f"Error al procesar movimiento: {e}")
             
             self.movimientos_actualizados.emit(self.movimientos)
-            logger.info(f"✅ {len(self.movimientos)} movimientos cargados")
+            logger.info(f" {len(self.movimientos)} movimientos cargados")
         except Exception as e:
             logger.error(f"Error procesando lista de movimientos: {e}")
             self.error_ocurrido.emit(f"Error al procesar los datos: {str(e)}")
@@ -115,12 +122,12 @@ class MovimientoVigenciaViewModel(QObject):
             datos: Diccionario con los datos del movimiento
         """
         try:
-            logger.info("📝 Creando nuevo movimiento...")
+            logger.info(" Creando nuevo movimiento...")
             self._current_operation = "crear"
             self.api.post("api/v1/movimientos_vigencia/", datos)
         except Exception as e:
             mensaje = f"Error al crear movimiento: {str(e)}"
-            logger.error(f"❌ {mensaje}")
+            logger.error(f" {mensaje}")
             self.error_ocurrido.emit(mensaje)
 
     def _procesar_movimiento_creado(self, response: dict) -> None:
@@ -130,7 +137,7 @@ class MovimientoVigenciaViewModel(QObject):
             self.movimientos.append(movimiento)
             self.movimiento_actualizado.emit(movimiento)
             self.movimientos_actualizados.emit(self.movimientos)
-            logger.info("✅ Movimiento creado exitosamente")
+            logger.info(" Movimiento creado exitosamente")
         except Exception as e:
             logger.error(f"Error procesando movimiento creado: {e}")
             self.error_ocurrido.emit(str(e))
@@ -144,12 +151,12 @@ class MovimientoVigenciaViewModel(QObject):
             datos: Diccionario con los datos actualizados
         """
         try:
-            logger.info(f"📝 Actualizando movimiento {id}...")
+            logger.info(f" Actualizando movimiento {id}...")
             self._current_operation = "actualizar"
             self.api.put(f"api/v1/movimientos_vigencia/{id}", datos)
         except Exception as e:
             mensaje = f"Error al actualizar movimiento: {str(e)}"
-            logger.error(f"❌ {mensaje}")
+            logger.error(f" {mensaje}")
             self.error_ocurrido.emit(mensaje)
 
     def _procesar_movimiento_actualizado(self, response: dict) -> None:
@@ -163,7 +170,7 @@ class MovimientoVigenciaViewModel(QObject):
                     break
             self.movimiento_actualizado.emit(movimiento)
             self.movimientos_actualizados.emit(self.movimientos)
-            logger.info("✅ Movimiento actualizado exitosamente")
+            logger.info(" Movimiento actualizado exitosamente")
         except Exception as e:
             logger.error(f"Error procesando movimiento actualizado: {e}")
             self.error_ocurrido.emit(str(e))

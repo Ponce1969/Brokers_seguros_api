@@ -27,12 +27,26 @@ class AuthService(QObject):
     auth_error = pyqtSignal(str)  # Emite mensaje de error cuando la autenticación falla
     session_expired = pyqtSignal()  # Emite cuando la sesión ha expirado
 
-    def __init__(self):
+    def __init__(self, network_manager=None):
         """
         Inicializa el servicio de autenticación
+        
+        Args:
+            network_manager: Instancia de NetworkManager (opcional)
         """
         super().__init__()
-        self.api = NetworkManager(os.getenv("API_URL", "http://localhost:8000"))
+        
+        # Obtener el NetworkManager del contenedor si no se proporciona
+        if network_manager is None:
+            from ..core.di_container import contenedor
+            self.api = contenedor.resolver(NetworkManager)
+        else:
+            self.api = network_manager
+        
+        if self.api is None:
+            logger.error("NetworkManager es None en AuthService.__init__")
+            raise ValueError("NetworkManager no puede ser None")
+            
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
         self.api.token_expired.connect(self.session_expired.emit)

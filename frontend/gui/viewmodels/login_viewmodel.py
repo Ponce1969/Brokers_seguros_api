@@ -28,6 +28,15 @@ class LoginViewModel(QObject):
             auth_service: Servicio de autenticación
         """
         super().__init__()
+        
+        # Verificar que auth_service no sea None
+        if auth_service is None:
+            from ..core.di_container import contenedor
+            auth_service = contenedor.resolver(AuthService)
+            if auth_service is None:
+                logger.error("AuthService no pudo ser resuelto por el contenedor")
+                raise ValueError("AuthService no puede ser None")
+                
         self.auth_service = auth_service
         self.token_data: Optional[dict] = None
 

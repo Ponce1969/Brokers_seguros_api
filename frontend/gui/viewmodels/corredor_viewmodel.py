@@ -26,15 +26,22 @@ class CorredorViewModel(QObject):
     corredores_actualizados = pyqtSignal(list)
     error_ocurrido = pyqtSignal(str)
 
-    def __init__(self):
-        """Inicializa el ViewModel de corredores"""
+    def __init__(self, network_manager=None):
+        """
+        Inicializa el ViewModel de corredores
+        
+        Args:
+            network_manager: Instancia del NetworkManager (opcional)
+        """
         super().__init__()
         self.corredores: List[Corredor] = []
         self.corredor_actual: Optional[Corredor] = None
         self.item_model = CorredorItemModel()
         
         # Inicializar NetworkManager
-        self.api = NetworkManager()
+        from ..core.di_container import contenedor
+        from ..services.network_manager import NetworkManager
+        self.api = network_manager if network_manager is not None else contenedor.resolver(NetworkManager)
         self.api.response_received.connect(self._handle_response)
         self.api.error_occurred.connect(self._handle_error)
         

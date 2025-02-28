@@ -32,9 +32,18 @@ class LoginView(QMainWindow):
         self.setWindowTitle("Login - Sistema de Corredores")
         self.setFixedSize(400, 400)
 
-        # Crear instancias de servicios
-        self.auth_service = AuthService()
-        self.viewmodel = LoginViewModel(self.auth_service)
+        # Obtener instancias de servicios del contenedor
+        self.viewmodel = contenedor.resolver(LoginViewModel)
+        
+        # Verificar que el viewmodel se haya resuelto correctamente
+        if self.viewmodel is None:
+            logger.error("No se pudo resolver LoginViewModel del contenedor")
+            raise RuntimeError("Error al inicializar LoginViewModel")
+            
+        # Verificar que el auth_service dentro del viewmodel no sea None
+        if self.viewmodel.auth_service is None:
+            logger.error("AuthService es None en el LoginViewModel")
+            raise RuntimeError("Error al inicializar AuthService en el LoginViewModel")
         
         # Conectar señales del ViewModel
         self.viewmodel.login_successful.connect(self._handle_login_success)
@@ -132,8 +141,8 @@ class LoginView(QMainWindow):
     def _handle_login_success(self, data: dict):
         """Maneja el login exitoso"""
         try:
-            # Crear el ViewModel del corredor con el token
-            corredor_viewmodel = CorredorViewModel()
+            # Obtener el ViewModel del corredor del contenedor
+            corredor_viewmodel = contenedor.resolver(CorredorViewModel)
             if "access_token" in data:
                 corredor_viewmodel.api.set_token(data["access_token"])
 

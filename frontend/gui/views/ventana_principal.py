@@ -26,10 +26,17 @@ logger = logging.getLogger(__name__)
 class VentanaPrincipal(QMainWindow):
     """Ventana principal de la aplicación"""
 
-    def __init__(self, viewmodel_corredor: CorredorViewModel, rol_usuario: str):
+    def __init__(self, viewmodel_corredor: CorredorViewModel, rol_usuario: str, viewmodel_movimientos: MovimientoVigenciaViewModel = None):
         super().__init__()
         self.viewmodel_corredor = viewmodel_corredor
-        self.viewmodel_movimientos = MovimientoVigenciaViewModel()
+        
+        # Obtener el ViewModel de movimientos del contenedor si no se proporciona
+        if viewmodel_movimientos is None:
+            from ..core.di_container import contenedor
+            self.viewmodel_movimientos = contenedor.resolver(MovimientoVigenciaViewModel)
+        else:
+            self.viewmodel_movimientos = viewmodel_movimientos
+            
         self.rol_usuario = rol_usuario
         self.setWindowTitle("Broker Seguros - Sistema de Gestión")
         self.setGeometry(100, 100, 1200, 800)
