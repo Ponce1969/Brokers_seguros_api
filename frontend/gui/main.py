@@ -9,6 +9,7 @@ from PyQt6.QtNetwork import QNetworkProxyFactory
 from frontend.gui.views.login_view import LoginView
 from frontend.gui.core.di_container import contenedor
 from frontend.gui.services.network_manager import NetworkManager
+from frontend.gui.utils import theme_manager
 
 # Configurar logging
 logging.basicConfig(
@@ -42,6 +43,10 @@ def main():
 
         # Configuración de red para QNetworkAccessManager
         QNetworkProxyFactory.setUseSystemConfiguration(True)
+        
+        # Aplicar estilos a nivel de aplicación usando ThemeManager
+        logger.info(" Aplicando estilos a la aplicación...")
+        theme_manager.apply_stylesheet(app)
 
         logger.info(" Iniciando aplicación...")
         

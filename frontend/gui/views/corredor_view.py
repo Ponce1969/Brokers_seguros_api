@@ -4,9 +4,10 @@ Vista para la gestión de corredores
 
 import logging
 import os
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import Qt, pyqtSlot, QSize
 from PyQt6.QtWidgets import (
     QApplication,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -18,12 +19,18 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PyQt6.QtGui import QIcon
 
 from ..viewmodels.corredor_viewmodel import CorredorViewModel
+from ..utils import IconHelper, theme_manager
 from .dialogo_corredor import DialogoCorredor
 
 # Configurar logging
 logger = logging.getLogger(__name__)
+
+# Constantes de colores - obtenidos del ThemeManager
+COLOR_PRIMARY = theme_manager.get_theme_colors().get("--primary-color")
+COLOR_DANGER = theme_manager.get_theme_colors().get("--danger-color")
 
 
 class VistaCorredores(QWidget):
@@ -45,21 +52,13 @@ class VistaCorredores(QWidget):
         self.viewmodel.cargar_corredores()
 
     def cargar_estilos(self):
-        """Carga los estilos desde el archivo .qss"""
+        """Carga los estilos usando el ThemeManager"""
         try:
-            # Ruta relativa al archivo styles.qss
-            styles_path = os.path.join(
-                os.path.dirname(__file__), "../resources/styles.qss"
-            )
-
-            if os.path.exists(styles_path):
-                with open(styles_path, "r") as file:
-                    self.setStyleSheet(file.read())
-                logger.info("✅ Estilos cargados correctamente")
-            else:
-                logger.warning("⚠️ Archivo de estilos no encontrado: %s", styles_path)
+            # Aplicar la hoja de estilos procesada a este widget
+            self.setStyleSheet(theme_manager.processed_stylesheet)
+            logger.info("✅ Estilos aplicados al widget de corredores")
         except Exception as e:
-            logger.error(f"❌ Error al cargar los estilos: {e}")
+            logger.error(f"❌ Error al aplicar los estilos: {e}")
 
     def init_ui(self):
         """Inicializa la interfaz de usuario"""
@@ -84,6 +83,8 @@ class VistaCorredores(QWidget):
 
         # Botón nuevo corredor (solo visible para administradores)
         self.btn_nuevo = QPushButton("Nuevo Corredor")
+        # Usar el icono de añadir con el color principal definido en QSS
+        self.btn_nuevo.setIcon(IconHelper.get_icon("add", COLOR_PRIMARY))
         self.btn_nuevo.clicked.connect(self.handle_nuevo_corredor)
         self.btn_nuevo.setVisible(self.es_admin)
         toolbar.addWidget(self.btn_nuevo)
@@ -119,6 +120,11 @@ class VistaCorredores(QWidget):
         """Actualiza la tabla con la lista de corredores"""
         try:
             self.tabla.setRowCount(len(corredores))
+            
+            # Establecer altura de fila a 32px para mejorar centrado de botones
+            for i in range(len(corredores)):
+                self.tabla.setRowHeight(i, 32)
+                
             for i, corredor in enumerate(corredores):
                 try:
                     items = [
@@ -153,24 +159,74 @@ class VistaCorredores(QWidget):
     def _agregar_botones_accion(self, i: int, corredor):
         """Agrega botones de acción para cada corredor en la tabla"""
         widget_acciones = QWidget()
+        
+        # Usamos QHBoxLayout en lugar de QGridLayout
         layout_acciones = QHBoxLayout(widget_acciones)
-        layout_acciones.setContentsMargins(0, 0, 0, 0)
+        layout_acciones.setContentsMargins(0, 0, 0, 0)  # Márgenes ajustados
+        layout_acciones.setSpacing(5)  # Espaciado uniforme entre botones
+        layout_acciones.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrar botones
+        
+        # Colores para los botones desde theme_manager
+        color_edit = theme_manager.get_theme_colors().get("--primary-color")
+        color_delete = theme_manager.get_theme_colors().get("--danger-color")
 
-        btn_editar = QPushButton("✏️")
-        btn_editar.setFixedWidth(30)
+        # Botón de editar con color pero manteniendo el centrado
+        btn_editar = QPushButton()
+        btn_editar.setIcon(IconHelper.get_icon("edit", color_edit, size=16))  # Especificamos tamaño de icono
+        btn_editar.setIconSize(QSize(16, 16))  # Tamaño optimizado para centrado
+        btn_editar.setToolTip("Editar corredor")
+        btn_editar.setFixedSize(28, 28)  # Tamaño cuadrado para centrado perfecto
+        btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_editar.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #f0f8ff;
+                border: 1px solid {color_edit};
+                border-radius: 5px;
+                text-align: center;
+                padding: 0px;
+                qproperty-iconSize: 16px;
+            }}
+            QPushButton:hover {{
+                background-color: #e6f2ff;
+                border-color: #005bb5;
+            }}
+        """)
+
         btn_editar.clicked.connect(
-            lambda checked, id=corredor.id: self.mostrar_dialogo_editar(id)
+            lambda checked=False, id=corredor.id: self.mostrar_dialogo_editar(id)
         )
 
-        btn_eliminar = QPushButton("🗑️")
-        btn_eliminar.setFixedWidth(30)
+        # Botón de eliminar con color pero manteniendo el centrado
+        btn_eliminar = QPushButton()
+        btn_eliminar.setIcon(IconHelper.get_icon("delete", color_delete, size=16))  # Especificamos tamaño de icono
+        btn_eliminar.setIconSize(QSize(16, 16))  # Tamaño uniforme con el de editar
+        btn_eliminar.setToolTip("Eliminar corredor")
+        btn_eliminar.setFixedSize(28, 28)
+        btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_eliminar.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #fff5f5;
+                border: 1px solid {color_delete};
+                border-radius: 5px;
+                text-align: center;
+                padding: 0px;
+                qproperty-iconSize: 16px;
+            }}
+            QPushButton:hover {{
+                background-color: #ffe6e6;
+                border-color: #c82333;
+            }}
+        """)
+
         btn_eliminar.clicked.connect(
-            lambda checked, id=corredor.id: self.confirmar_eliminar(id)
+            lambda checked=False, id=corredor.id: self.confirmar_eliminar(id)
         )
 
+        # Agregar botones al layout
         layout_acciones.addWidget(btn_editar)
         layout_acciones.addWidget(btn_eliminar)
 
+        # Establecer el widget en la celda con alineación central
         self.tabla.setCellWidget(i, 6, widget_acciones)
 
     def filtrar_corredores(self):

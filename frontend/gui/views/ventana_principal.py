@@ -13,11 +13,12 @@ from PyQt6.QtWidgets import (
     QStackedWidget,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from frontend.gui.viewmodels.corredor_viewmodel import CorredorViewModel
 from frontend.gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
 from frontend.gui.views.corredor_view import VistaCorredores
 from frontend.gui.views.movimiento_vigencia_view import VistaMovimientosVigencia
+from frontend.gui.utils import theme_manager, IconHelper
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -54,6 +55,20 @@ class VentanaPrincipal(QMainWindow):
         # Layout principal
         layout_principal = QHBoxLayout()
         widget_central.setLayout(layout_principal)
+        
+        # Aplicar estilo al fondo de la ventana
+        background_color = theme_manager.get_theme_colors().get("--background")
+        border_color = theme_manager.get_theme_colors().get("--border-color")
+        self.setStyleSheet(f"""
+            QMainWindow, QWidget {{
+                background-color: {background_color};
+            }}
+            QDialog {{
+                background-color: {background_color};
+                border: 1px solid {border_color};
+                border-radius: 5px;
+            }}
+        """)
 
         # Panel de navegación (izquierda)
         panel_navegacion = QWidget()
@@ -65,12 +80,20 @@ class VentanaPrincipal(QMainWindow):
         titulo_nav = QLabel("Menú Principal")
         titulo_nav.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo_nav.setObjectName("titulo_nav")
-        # Cargar estilos desde el archivo QSS
-        try:
-            with open('frontend/gui/resources/styles.qss', 'r') as f:
-                titulo_nav.setStyleSheet(f.read())
-        except Exception as e:
-            logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
+        # Aplicar estilo directamente al título
+        background_title = theme_manager.get_theme_colors().get("--nav-title-bg")
+        text_color = theme_manager.get_theme_colors().get("--text-color")
+        titulo_nav.setStyleSheet(f"""
+            QLabel#titulo_nav {{
+                font-size: 14px;
+                font-weight: bold;
+                padding: 10px;
+                background-color: {background_title};
+                color: {text_color};
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }}
+        """)
 
         layout_navegacion.addWidget(titulo_nav)
 
@@ -79,15 +102,50 @@ class VentanaPrincipal(QMainWindow):
         self.boton_clientes = QPushButton("Clientes")
         self.boton_movimientos = QPushButton("Movimientos Vigencias")
 
-        # Cargar estilos desde el archivo QSS
-        try:
-            with open('frontend/gui/resources/styles.qss', 'r') as f:
-                qss = f.read()
-                self.boton_corredores.setStyleSheet(qss)
-                self.boton_clientes.setStyleSheet(qss)
-                self.boton_movimientos.setStyleSheet(qss)
-        except Exception as e:
-            logger.warning(f"No se pudo cargar el archivo de estilos: {e}")
+        # Aplicar estilos directamente a los botones
+        primary_color = theme_manager.get_theme_colors().get("--primary-color")
+        hover_color = theme_manager.get_theme_colors().get("--hover-color")
+        pressed_color = theme_manager.get_theme_colors().get("--pressed-color")
+        
+        nav_button_style = f"""
+            QPushButton {{
+                background-color: {primary_color};
+                color: white;
+                border: none;
+                padding: 12px;
+                text-align: left;
+                font-size: 12px;
+                margin-bottom: 8px;
+                border-radius: 5px;
+            }}
+            
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+            
+            QPushButton:pressed, QPushButton[active="true"] {{
+                background-color: {pressed_color};
+            }}
+        """
+        
+        self.boton_corredores.setStyleSheet(nav_button_style)
+        self.boton_clientes.setStyleSheet(nav_button_style)
+        self.boton_movimientos.setStyleSheet(nav_button_style)
+        
+        # Añadir iconos a los botones
+        primary_color = theme_manager.get_theme_colors().get("--primary-color")
+        
+        self.boton_corredores.setIcon(IconHelper.get_icon("user", primary_color))
+        self.boton_clientes.setIcon(IconHelper.get_icon("users", primary_color))
+        self.boton_movimientos.setIcon(IconHelper.get_icon("calendar", primary_color))
+        
+        # Hacer que los botones sean más grandes y atractivos
+        for btn in [self.boton_corredores, self.boton_clientes, self.boton_movimientos]:
+            btn.setMinimumHeight(50)
+            btn.setIconSize(QSize(24, 24))
+        
+        # Establecer el botón de corredores como active por defecto
+        self.boton_corredores.setProperty("active", "true")
 
         # Conectar botones a sus funciones
         self.boton_corredores.clicked.connect(lambda: self.cambiar_vista("corredores"))
