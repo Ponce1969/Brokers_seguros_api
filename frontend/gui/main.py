@@ -3,13 +3,14 @@ Punto de entrada principal de la aplicación
 """
 
 import sys
+import os
 import logging
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtNetwork import QNetworkProxyFactory
 from frontend.gui.views.login_view import LoginView
 from frontend.gui.core.di_container import contenedor
 from frontend.gui.services.network_manager import NetworkManager
-from frontend.gui.utils import theme_manager
+from frontend.gui.utils.theme_manager import ThemeManager, Theme
 
 # Configurar logging
 logging.basicConfig(
@@ -40,13 +41,21 @@ def main():
         
         # Inicializar la aplicación Qt
         app = QApplication(sys.argv)
+        
+        # Establecer estilo Fusion para máxima compatibilidad con QSS
+        app.setStyle("Fusion")
 
         # Configuración de red para QNetworkAccessManager
         QNetworkProxyFactory.setUseSystemConfiguration(True)
         
         # Aplicar estilos a nivel de aplicación usando ThemeManager
         logger.info(" Aplicando estilos a la aplicación...")
-        theme_manager.apply_stylesheet(app)
+        try:
+            # Aplicar el tema predeterminado (claro)
+            ThemeManager.apply_theme(app, Theme.LIGHT)
+            logger.info(" Tema y estilos aplicados correctamente")
+        except Exception as e:
+            logger.error(f" Error al aplicar estilos: {e}")
 
         logger.info(" Iniciando aplicación...")
         

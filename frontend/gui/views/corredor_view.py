@@ -22,15 +22,15 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QIcon
 
 from ..viewmodels.corredor_viewmodel import CorredorViewModel
-from ..utils import IconHelper, theme_manager
+from ..utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 from .dialogo_corredor import DialogoCorredor
 
 # Configurar logging
 logger = logging.getLogger(__name__)
 
 # Constantes de colores - obtenidos del ThemeManager
-COLOR_PRIMARY = theme_manager.get_theme_colors().get("--primary-color")
-COLOR_DANGER = theme_manager.get_theme_colors().get("--danger-color")
+COLOR_PRIMARY = "#1a73e8"  # Azul principal
+COLOR_DANGER = "#d93025"   # Rojo para acciones de eliminación
 
 
 class VistaCorredores(QWidget):
@@ -55,7 +55,7 @@ class VistaCorredores(QWidget):
         """Carga los estilos usando el ThemeManager"""
         try:
             # Aplicar la hoja de estilos procesada a este widget
-            self.setStyleSheet(theme_manager.processed_stylesheet)
+            # No se requiere estilo específico aquí, ya se aplica a nivel de aplicación
             logger.info("✅ Estilos aplicados al widget de corredores")
         except Exception as e:
             logger.error(f"❌ Error al aplicar los estilos: {e}")
@@ -85,8 +85,12 @@ class VistaCorredores(QWidget):
         self.btn_nuevo = QPushButton("Nuevo Corredor")
         # Usar el icono de añadir con el color principal definido en QSS
         self.btn_nuevo.setIcon(IconHelper.get_icon("add", COLOR_PRIMARY))
+        # Aplicar estilo para asegurar que el texto sea visible (oscuro sobre fondo claro)
+        self.btn_nuevo.setStyleSheet("QPushButton { color: #202124; }")
         self.btn_nuevo.clicked.connect(self.handle_nuevo_corredor)
         self.btn_nuevo.setVisible(self.es_admin)
+        # Aplicar efecto de sombra al botón principal
+        apply_button_shadow(self.btn_nuevo)
         toolbar.addWidget(self.btn_nuevo)
 
         layout.addLayout(toolbar)
@@ -108,6 +112,9 @@ class VistaCorredores(QWidget):
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setGridStyle(Qt.PenStyle.DotLine)
         self.tabla.setShowGrid(True)
+        
+        # Asegurar que el texto del encabezado sea visible con fondo claro
+        header.setStyleSheet("QHeaderView::section { color: #202124; background-color: #e8eaed; }")
 
         layout.addWidget(self.tabla)
 
@@ -121,9 +128,9 @@ class VistaCorredores(QWidget):
         try:
             self.tabla.setRowCount(len(corredores))
             
-            # Establecer altura de fila a 32px para mejorar centrado de botones
+            # Establecer altura de fila a 38px para acomodar mejor los botones
             for i in range(len(corredores)):
-                self.tabla.setRowHeight(i, 32)
+                self.tabla.setRowHeight(i, 38)
                 
             for i, corredor in enumerate(corredores):
                 try:
@@ -162,61 +169,41 @@ class VistaCorredores(QWidget):
         
         # Usamos QHBoxLayout en lugar de QGridLayout
         layout_acciones = QHBoxLayout(widget_acciones)
-        layout_acciones.setContentsMargins(0, 0, 0, 0)  # Márgenes ajustados
-        layout_acciones.setSpacing(5)  # Espaciado uniforme entre botones
+        layout_acciones.setContentsMargins(0, 2, 0, 2)  # Márgenes verticales para centrado óptimo
+        layout_acciones.setSpacing(8)  # Mayor espaciado entre botones para mejor visibilidad
         layout_acciones.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrar botones
         
-        # Colores para los botones desde theme_manager
-        color_edit = theme_manager.get_theme_colors().get("--primary-color")
-        color_delete = theme_manager.get_theme_colors().get("--danger-color")
+        # Colores fijos para los botones
+        color_edit = "#1a73e8"  # Azul principal
+        color_delete = "#d93025"  # Rojo para acciones de eliminación
 
-        # Botón de editar con color pero manteniendo el centrado
+        # Botón de editar usando propiedades para identificar en QSS
         btn_editar = QPushButton()
-        btn_editar.setIcon(IconHelper.get_icon("edit", color_edit, size=16))  # Especificamos tamaño de icono
-        btn_editar.setIconSize(QSize(16, 16))  # Tamaño optimizado para centrado
+        btn_editar.setObjectName("btn_editar")
+        # Usar directamente el icono PNG en lugar de SVG
+        btn_editar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/editar.png"))
+        btn_editar.setIconSize(QSize(16, 16))
         btn_editar.setToolTip("Editar corredor")
-        btn_editar.setFixedSize(28, 28)  # Tamaño cuadrado para centrado perfecto
+        btn_editar.setFixedSize(28, 28)
         btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_editar.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #f0f8ff;
-                border: 1px solid {color_edit};
-                border-radius: 5px;
-                text-align: center;
-                padding: 0px;
-                qproperty-iconSize: 16px;
-            }}
-            QPushButton:hover {{
-                background-color: #e6f2ff;
-                border-color: #005bb5;
-            }}
-        """)
+        # Aplicamos propiedades para identificar en QSS
+        btn_editar.setProperty("actionType", "edit")
 
         btn_editar.clicked.connect(
             lambda checked=False, id=corredor.id: self.mostrar_dialogo_editar(id)
         )
 
-        # Botón de eliminar con color pero manteniendo el centrado
+        # Botón de eliminar usando propiedades para identificar en QSS
         btn_eliminar = QPushButton()
-        btn_eliminar.setIcon(IconHelper.get_icon("delete", color_delete, size=16))  # Especificamos tamaño de icono
-        btn_eliminar.setIconSize(QSize(16, 16))  # Tamaño uniforme con el de editar
+        btn_eliminar.setObjectName("btn_eliminar")
+        # Usar directamente el icono PNG en lugar de SVG
+        btn_eliminar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/eliminar.png"))
+        btn_eliminar.setIconSize(QSize(16, 16))
         btn_eliminar.setToolTip("Eliminar corredor")
         btn_eliminar.setFixedSize(28, 28)
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_eliminar.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #fff5f5;
-                border: 1px solid {color_delete};
-                border-radius: 5px;
-                text-align: center;
-                padding: 0px;
-                qproperty-iconSize: 16px;
-            }}
-            QPushButton:hover {{
-                background-color: #ffe6e6;
-                border-color: #c82333;
-            }}
-        """)
+        # Aplicamos propiedades para identificar en QSS
+        btn_eliminar.setProperty("actionType", "delete")
 
         btn_eliminar.clicked.connect(
             lambda checked=False, id=corredor.id: self.confirmar_eliminar(id)

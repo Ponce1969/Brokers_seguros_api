@@ -18,7 +18,7 @@ from frontend.gui.viewmodels.corredor_viewmodel import CorredorViewModel
 from frontend.gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
 from frontend.gui.views.corredor_view import VistaCorredores
 from frontend.gui.views.movimiento_vigencia_view import VistaMovimientosVigencia
-from frontend.gui.utils import theme_manager, IconHelper
+from frontend.gui.utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -57,8 +57,8 @@ class VentanaPrincipal(QMainWindow):
         widget_central.setLayout(layout_principal)
         
         # Aplicar estilo al fondo de la ventana
-        background_color = theme_manager.get_theme_colors().get("--background")
-        border_color = theme_manager.get_theme_colors().get("--border-color")
+        background_color = "#f8f9fc"  # Fondo principal
+        border_color = "#dadce0"     # Color de bordes
         self.setStyleSheet(f"""
             QMainWindow, QWidget {{
                 background-color: {background_color};
@@ -81,8 +81,8 @@ class VentanaPrincipal(QMainWindow):
         titulo_nav.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo_nav.setObjectName("titulo_nav")
         # Aplicar estilo directamente al título
-        background_title = theme_manager.get_theme_colors().get("--nav-title-bg")
-        text_color = theme_manager.get_theme_colors().get("--text-color")
+        background_title = "#e8eaec"  # Fondo para títulos
+        text_color = "#202124"       # Color de texto principal
         titulo_nav.setStyleSheet(f"""
             QLabel#titulo_nav {{
                 font-size: 14px;
@@ -103,9 +103,9 @@ class VentanaPrincipal(QMainWindow):
         self.boton_movimientos = QPushButton("Movimientos Vigencias")
 
         # Aplicar estilos directamente a los botones
-        primary_color = theme_manager.get_theme_colors().get("--primary-color")
-        hover_color = theme_manager.get_theme_colors().get("--hover-color")
-        pressed_color = theme_manager.get_theme_colors().get("--pressed-color")
+        primary_color = "#1a73e8"   # Azul principal
+        hover_color = "#1967d2"    # Azul hover
+        pressed_color = "#185abc"  # Azul pressed
         
         nav_button_style = f"""
             QPushButton {{
@@ -117,6 +117,7 @@ class VentanaPrincipal(QMainWindow):
                 font-size: 12px;
                 margin-bottom: 8px;
                 border-radius: 5px;
+                qproperty-iconSize: 24px;
             }}
             
             QPushButton:hover {{
@@ -132,12 +133,20 @@ class VentanaPrincipal(QMainWindow):
         self.boton_clientes.setStyleSheet(nav_button_style)
         self.boton_movimientos.setStyleSheet(nav_button_style)
         
-        # Añadir iconos a los botones
-        primary_color = theme_manager.get_theme_colors().get("--primary-color")
+        # Aplicar efectos de sombra a los botones de navegación para mejorar la experiencia visual
+        apply_button_shadow(self.boton_corredores)
+        apply_button_shadow(self.boton_clientes)
+        apply_button_shadow(self.boton_movimientos)
         
-        self.boton_corredores.setIcon(IconHelper.get_icon("user", primary_color))
-        self.boton_clientes.setIcon(IconHelper.get_icon("users", primary_color))
-        self.boton_movimientos.setIcon(IconHelper.get_icon("calendar", primary_color))
+        # Usar iconos PNG para los botones de navegación
+        self.boton_corredores.setIcon(IconHelper.get_icon("corredor"))
+        self.boton_clientes.setIcon(IconHelper.get_icon("clientes"))
+        self.boton_movimientos.setIcon(IconHelper.get_icon("movimientos"))
+        
+        # Usar texto descriptivo junto con los iconos
+        self.boton_corredores.setText("  CORREDORES")
+        self.boton_clientes.setText("  CLIENTES")
+        self.boton_movimientos.setText("  MOVIMIENTOS")
         
         # Hacer que los botones sean más grandes y atractivos
         for btn in [self.boton_corredores, self.boton_clientes, self.boton_movimientos]:

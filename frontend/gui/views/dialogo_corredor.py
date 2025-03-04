@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QDataWidgetMapper,
 )
-from PyQt6.QtCore import pyqtSignal, QAbstractItemModel
+from PyQt6.QtCore import pyqtSignal, QAbstractItemModel, Qt
 from typing import Optional, Dict
 import logging
 from datetime import datetime
@@ -59,93 +59,126 @@ class DialogoCorredor(QDialog):
 
         self.setWindowTitle("Nuevo Corredor" if not corredor.id else "Editar Corredor")
         self.setModal(True)
+        # Establecer dimensiones máximas y mínimas para la ventana
         self.setMinimumWidth(400)
+        self.setMaximumWidth(500)
+        self.setMinimumHeight(400)
+        self.setMaximumHeight(650)
         self.init_ui()
 
     def init_ui(self):
         """Inicializa la interfaz de usuario"""
-        # Layout principal
+        # Layout principal - reducir márgenes y espaciado
         layout = QVBoxLayout(self)
-        layout.setSpacing(10)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(6)
+        layout.setContentsMargins(8, 8, 8, 8)
 
-        # Form layout para los campos
+        # Form layout para los campos - reducir espaciado
         form_layout = QFormLayout()
-        form_layout.setSpacing(10)
+        form_layout.setSpacing(4)
+        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         # Campos del formulario
         self.campos = {}
+        
+        # Estilo compacto para todos los campos
+        campo_style = "height: 28px; padding: 4px; font-size: 12px;"
 
         # Número de corredor
         self.campos["numero"] = QSpinBox()
         self.campos["numero"].setMinimum(1)
         self.campos["numero"].setMaximum(99999)
+        self.campos["numero"].setFixedHeight(28)
         form_layout.addRow("Número *:", self.campos["numero"])
 
         # Nombres
         self.campos["nombres"] = QLineEdit()
         self.campos["nombres"].setPlaceholderText("Nombres")
+        self.campos["nombres"].setStyleSheet(campo_style)
         form_layout.addRow("Nombres *:", self.campos["nombres"])
 
         # Apellidos
         self.campos["apellidos"] = QLineEdit()
         self.campos["apellidos"].setPlaceholderText("Apellidos")
+        self.campos["apellidos"].setStyleSheet(campo_style)
         form_layout.addRow("Apellidos *:", self.campos["apellidos"])
 
         # Documento
         self.campos["documento"] = QLineEdit()
         self.campos["documento"].setPlaceholderText("Número de documento")
+        self.campos["documento"].setStyleSheet(campo_style)
         form_layout.addRow("Documento *:", self.campos["documento"])
 
         # Dirección
         self.campos["direccion"] = QLineEdit()
         self.campos["direccion"].setPlaceholderText("Dirección completa")
+        self.campos["direccion"].setStyleSheet(campo_style)
         form_layout.addRow("Dirección:", self.campos["direccion"])
 
         # Localidad
         self.campos["localidad"] = QLineEdit()
         self.campos["localidad"].setPlaceholderText("Localidad")
+        self.campos["localidad"].setStyleSheet(campo_style)
         form_layout.addRow("Localidad:", self.campos["localidad"])
 
         # Teléfonos
         self.campos["telefonos"] = QLineEdit()
         self.campos["telefonos"].setPlaceholderText("Teléfonos fijos")
+        self.campos["telefonos"].setStyleSheet(campo_style)
         form_layout.addRow("Teléfonos:", self.campos["telefonos"])
 
         # Móvil
         self.campos["movil"] = QLineEdit()
         self.campos["movil"].setPlaceholderText("Teléfono móvil")
+        self.campos["movil"].setStyleSheet(campo_style)
         form_layout.addRow("Móvil:", self.campos["movil"])
 
         # Email
         self.campos["email"] = QLineEdit()
         self.campos["email"].setPlaceholderText("correo@ejemplo.com")
+        self.campos["email"].setStyleSheet(campo_style)
         form_layout.addRow("Email *:", self.campos["email"])
 
         # Observaciones
         self.campos["observaciones"] = QLineEdit()
         self.campos["observaciones"].setPlaceholderText("Observaciones adicionales")
+        self.campos["observaciones"].setStyleSheet(campo_style)
         form_layout.addRow("Observaciones:", self.campos["observaciones"])
 
         # Matrícula (opcional)
         self.campos["matricula"] = QLineEdit()
         self.campos["matricula"].setPlaceholderText("Número de matrícula (opcional)")
+        self.campos["matricula"].setStyleSheet(campo_style)
         form_layout.addRow("Matrícula:", self.campos["matricula"])
 
         # Especialización
         self.campos["especializacion"] = QLineEdit()
         self.campos["especializacion"].setPlaceholderText("Área de especialización")
+        self.campos["especializacion"].setStyleSheet(campo_style)
         form_layout.addRow("Especialización:", self.campos["especializacion"])
 
         layout.addLayout(form_layout)
 
-        # Botones de acción
+        # Botones de acción - más compactos
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        # Estilo compacto para los botones
+        buttons.setStyleSheet("""
+            QPushButton { 
+                min-height: 28px; 
+                max-height: 30px; 
+                padding: 3px 10px;
+                font-size: 12px;
+            }
+        """)
         buttons.accepted.connect(self.validar_y_aceptar)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        
+        # Agregar un pequeño espaciado antes de los botones
+        layout.addSpacing(5)
 
         # Configurar el mapper después de crear los widgets
         self.setup_mapper()

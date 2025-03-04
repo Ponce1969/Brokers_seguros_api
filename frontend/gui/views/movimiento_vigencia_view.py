@@ -15,10 +15,12 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QComboBox,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon
 import logging
 from datetime import date
 from ..viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
+from ..utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -67,6 +69,8 @@ class VistaMovimientosVigencia(QWidget):
         # Botón nuevo movimiento
         self.btn_nuevo = QPushButton("Nuevo Movimiento")
         self.btn_nuevo.clicked.connect(self.mostrar_dialogo_nuevo)
+        # Aplicar efecto de sombra para mejorar la experiencia visual
+        apply_button_shadow(self.btn_nuevo)
         toolbar_superior.addWidget(self.btn_nuevo)
 
         layout.addLayout(toolbar_superior)
@@ -94,6 +98,10 @@ class VistaMovimientosVigencia(QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)  # Acciones
         self.tabla.setColumnWidth(9, 100)
+        
+        # Asegurar que el texto del encabezado sea visible con fondo claro
+        header.setStyleSheet("QHeaderView::section { color: #202124; background-color: #e8eaed; }")
+        self.tabla.setAlternatingRowColors(True)
 
         layout.addWidget(self.tabla)
 
@@ -165,8 +173,15 @@ class VistaMovimientosVigencia(QWidget):
                 layout_acciones = QHBoxLayout(widget_acciones)
                 layout_acciones.setContentsMargins(0, 0, 0, 0)
 
-                btn_editar = QPushButton("✏️")
-                btn_editar.setFixedWidth(30)
+                btn_editar = QPushButton()
+                btn_editar.setObjectName("btn_editar")
+                btn_editar.setProperty("actionType", "edit")
+                # Usar un color definido y asegurar visibilidad
+                btn_editar.setIcon(IconHelper.get_icon("edit", "#1a73e8", size=16))
+                btn_editar.setIconSize(QSize(16, 16))
+                btn_editar.setToolTip("Editar movimiento")
+                btn_editar.setFixedSize(28, 28)
+                btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
                 btn_editar.clicked.connect(
                     lambda checked, id=mov.id: self.mostrar_dialogo_editar(id)
                 )

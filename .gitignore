@@ -47,6 +47,10 @@ docker-compose.override.yml
 
 # Backups
 *_backup_*.tar.gz
+*.sql
+backup_*.sql
+*_migration.sql
+backup_before_migration.sql
 
 # Environment variables
 .env
