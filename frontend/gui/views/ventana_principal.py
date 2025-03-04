@@ -56,22 +56,12 @@ class VentanaPrincipal(QMainWindow):
         layout_principal = QHBoxLayout()
         widget_central.setLayout(layout_principal)
         
-        # Aplicar estilo al fondo de la ventana
-        background_color = "#f8f9fc"  # Fondo principal
-        border_color = "#dadce0"     # Color de bordes
-        self.setStyleSheet(f"""
-            QMainWindow, QWidget {{
-                background-color: {background_color};
-            }}
-            QDialog {{
-                background-color: {background_color};
-                border: 1px solid {border_color};
-                border-radius: 5px;
-            }}
-        """)
+        # Usar la paleta de colores del tema actual en lugar de hardcodear colores
+        # Esto permitirá que el tema oscuro se aplique correctamente a toda la ventana
 
         # Panel de navegación (izquierda)
         panel_navegacion = QWidget()
+        panel_navegacion.setObjectName("panel_navegacion")  # Asignar ID para estilos QSS
         layout_navegacion = QVBoxLayout()
         panel_navegacion.setLayout(layout_navegacion)
         panel_navegacion.setFixedWidth(200)
@@ -80,20 +70,7 @@ class VentanaPrincipal(QMainWindow):
         titulo_nav = QLabel("Menú Principal")
         titulo_nav.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo_nav.setObjectName("titulo_nav")
-        # Aplicar estilo directamente al título
-        background_title = "#e8eaec"  # Fondo para títulos
-        text_color = "#202124"       # Color de texto principal
-        titulo_nav.setStyleSheet(f"""
-            QLabel#titulo_nav {{
-                font-size: 14px;
-                font-weight: bold;
-                padding: 10px;
-                background-color: {background_title};
-                color: {text_color};
-                border-radius: 5px;
-                margin-bottom: 10px;
-            }}
-        """)
+        # El estilo se aplicará desde los archivos QSS de tema
 
         layout_navegacion.addWidget(titulo_nav)
 
@@ -102,36 +79,11 @@ class VentanaPrincipal(QMainWindow):
         self.boton_clientes = QPushButton("Clientes")
         self.boton_movimientos = QPushButton("Movimientos Vigencias")
 
-        # Aplicar estilos directamente a los botones
-        primary_color = "#1a73e8"   # Azul principal
-        hover_color = "#1967d2"    # Azul hover
-        pressed_color = "#185abc"  # Azul pressed
-        
-        nav_button_style = f"""
-            QPushButton {{
-                background-color: {primary_color};
-                color: white;
-                border: none;
-                padding: 12px;
-                text-align: left;
-                font-size: 12px;
-                margin-bottom: 8px;
-                border-radius: 5px;
-                qproperty-iconSize: 24px;
-            }}
-            
-            QPushButton:hover {{
-                background-color: {hover_color};
-            }}
-            
-            QPushButton:pressed, QPushButton[active="true"] {{
-                background-color: {pressed_color};
-            }}
-        """
-        
-        self.boton_corredores.setStyleSheet(nav_button_style)
-        self.boton_clientes.setStyleSheet(nav_button_style)
-        self.boton_movimientos.setStyleSheet(nav_button_style)
+        # Configurar propiedades de los botones de navegaciu00f3n
+        # Los estilos se aplicaru00e1n desde los archivos QSS de tema
+        for btn in [self.boton_corredores, self.boton_clientes, self.boton_movimientos]:
+            btn.setObjectName("nav_button")  # Asignar un nombre de objeto para aplicar estilos QSS
+            btn.setProperty("navButton", "true")  # Propiedad para selector QSS
         
         # Aplicar efectos de sombra a los botones de navegación para mejorar la experiencia visual
         apply_button_shadow(self.boton_corredores)
@@ -176,6 +128,7 @@ class VentanaPrincipal(QMainWindow):
 
         # Stack de vistas (derecha)
         self.stack_vistas = QStackedWidget()
+        self.stack_vistas.setObjectName("stack_vistas")  # Asignar ID para estilos QSS
 
         # Determinar si el usuario es admin
         es_admin = self.rol_usuario.lower() == "admin"

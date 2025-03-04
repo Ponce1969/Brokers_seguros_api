@@ -182,9 +182,9 @@ class VistaCorredores(QWidget):
         btn_editar.setObjectName("btn_editar")
         # Usar directamente el icono PNG en lugar de SVG
         btn_editar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/editar.png"))
-        btn_editar.setIconSize(QSize(16, 16))
+        btn_editar.setIconSize(QSize(20, 20))
         btn_editar.setToolTip("Editar corredor")
-        btn_editar.setFixedSize(28, 28)
+        # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
         # Aplicamos propiedades para identificar en QSS
         btn_editar.setProperty("actionType", "edit")
@@ -198,9 +198,9 @@ class VistaCorredores(QWidget):
         btn_eliminar.setObjectName("btn_eliminar")
         # Usar directamente el icono PNG en lugar de SVG
         btn_eliminar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/eliminar.png"))
-        btn_eliminar.setIconSize(QSize(16, 16))
+        btn_eliminar.setIconSize(QSize(20, 20))
         btn_eliminar.setToolTip("Eliminar corredor")
-        btn_eliminar.setFixedSize(28, 28)
+        # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
         # Aplicamos propiedades para identificar en QSS
         btn_eliminar.setProperty("actionType", "delete")

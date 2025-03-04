@@ -178,9 +178,9 @@ class VistaMovimientosVigencia(QWidget):
                 btn_editar.setProperty("actionType", "edit")
                 # Usar un color definido y asegurar visibilidad
                 btn_editar.setIcon(IconHelper.get_icon("edit", "#1a73e8", size=16))
-                btn_editar.setIconSize(QSize(16, 16))
+                btn_editar.setIconSize(QSize(20, 20))
                 btn_editar.setToolTip("Editar movimiento")
-                btn_editar.setFixedSize(28, 28)
+                # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
                 btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
                 btn_editar.clicked.connect(
                     lambda checked, id=mov.id: self.mostrar_dialogo_editar(id)

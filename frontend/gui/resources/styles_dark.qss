@@ -1,8 +1,20 @@
 /* ===== ESTILOS GENERALES - TEMA OSCURO ===== */
-QDialog, QMainWindow {
+QDialog, QMainWindow, QWidget {
     background-color: #202124;
     font-family: "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif;
     color: #e8eaed;
+}
+
+/* Asegurar que todos los widgets respeten el tema oscuro */
+QStackedWidget, QScrollArea {
+    background-color: #202124;
+    border: none;
+}
+
+/* Contenedores y paneles */
+QWidget#panel_navegacion, QWidget#stack_vistas {
+    background-color: #202124;
+    border: none;
 }
 
 /* ===== BOTONES ===== */
@@ -76,16 +88,12 @@ QPushButton[iconButton="true"][danger="true"]:hover {
 
 /* Botones de acción en tablas */
 QPushButton[tableAction="true"] {
-    qproperty-iconSize: 13px;
+    qproperty-iconSize: 16px;
     background-color: transparent;
     border: none;
     border-radius: 5px;
-    padding: 2px;
+    padding: 0;
     margin: 0;
-    min-height: 24px;
-    min-width: 24px;
-    max-height: 24px;
-    max-width: 24px;
     cursor: pointer;
 }
 
@@ -95,6 +103,29 @@ QPushButton[tableAction="true"]:hover {
 
 QPushButton[tableAction="true"][danger="true"]:hover {
     background-color: rgba(255, 0, 0, 0.2);
+}
+
+/* Botones de navegación */
+QPushButton[navButton="true"], QPushButton#nav_button {
+    background-color: #8ab4f8;
+    color: #202124;
+    border: none;
+    padding: 12px;
+    text-align: left;
+    font-size: 12px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    qproperty-iconSize: 24px;
+}
+
+QPushButton[navButton="true"]:hover, QPushButton#nav_button:hover {
+    background-color: #aecbfa;
+}
+
+QPushButton[navButton="true"]:pressed, QPushButton#nav_button:pressed,
+QPushButton[navButton="true"][active="true"], QPushButton#nav_button[active="true"] {
+    background-color: #669df6;
+    font-weight: bold;
 }
 
 /* ===== ETIQUETAS (QLabel) ===== */
@@ -119,6 +150,8 @@ QLabel#titulo_nav {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #303134, stop:1 #292a2d);
     border-radius: 6px;
     border: 1px solid #5f6368;
+    color: #e8eaed;
+    margin-bottom: 10px;
 }
 
 /* ===== CAMPOS DE TEXTO ===== */
