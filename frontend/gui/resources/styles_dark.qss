@@ -87,21 +87,23 @@ QPushButton[iconButton="true"][danger="true"]:hover {
 }
 
 /* Botones de acción en tablas */
-QPushButton[tableAction="true"] {
-    qproperty-iconSize: 16px;
+QPushButton[actionType] {
+    qproperty-iconSize: 24px;
     background-color: transparent;
     border: none;
-    border-radius: 5px;
-    padding: 0;
+    border-radius: 0;
+    padding: 5px;
     margin: 0;
     cursor: pointer;
+    min-width: 32px;
+    min-height: 32px;
 }
 
-QPushButton[tableAction="true"]:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+QPushButton[actionType="edit"]:hover {
+    background-color: rgba(138, 180, 248, 0.2);
 }
 
-QPushButton[tableAction="true"][danger="true"]:hover {
+QPushButton[actionType="delete"]:hover {
     background-color: rgba(255, 0, 0, 0.2);
 }
 

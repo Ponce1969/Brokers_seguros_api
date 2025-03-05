@@ -86,22 +86,24 @@ QPushButton[iconButton="true"][danger="true"]:hover {
 }
 
 /* Botones de acción en tablas */
-QPushButton[tableAction="true"] {
-    qproperty-iconSize: 16px;
+QPushButton[actionType] {
+    qproperty-iconSize: 24px;
     background-color: transparent;
     border: none;
-    border-radius: 5px;
-    padding: 0;
+    border-radius: 0;
+    padding: 5px;
     margin: 0;
     cursor: pointer;
+    min-width: 32px;
+    min-height: 32px;
 }
 
-QPushButton[tableAction="true"]:hover {
-    background-color: rgba(0, 0, 0, 0.1);
+QPushButton[actionType="edit"]:hover {
+    background-color: rgba(26, 115, 232, 0.1);
 }
 
-QPushButton[tableAction="true"][danger="true"]:hover {
-    background-color: rgba(255, 0, 0, 0.1);
+QPushButton[actionType="delete"]:hover {
+    background-color: rgba(217, 48, 37, 0.1);
 }
 
 /* Botones de navegación */

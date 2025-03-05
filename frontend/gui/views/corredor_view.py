@@ -169,9 +169,9 @@ class VistaCorredores(QWidget):
         
         # Usamos QHBoxLayout en lugar de QGridLayout
         layout_acciones = QHBoxLayout(widget_acciones)
-        layout_acciones.setContentsMargins(0, 2, 0, 2)  # Márgenes verticales para centrado óptimo
-        layout_acciones.setSpacing(8)  # Mayor espaciado entre botones para mejor visibilidad
-        layout_acciones.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Centrar botones
+        layout_acciones.setContentsMargins(0, 0, 0, 0)  # Eliminar todos los márgenes
+        layout_acciones.setSpacing(0)  # Eliminar espacio entre botones
+        # Quitar alineación central para que ocupen todo el espacio
         
         # Colores fijos para los botones
         color_edit = "#1a73e8"  # Azul principal
@@ -182,7 +182,7 @@ class VistaCorredores(QWidget):
         btn_editar.setObjectName("btn_editar")
         # Usar directamente el icono PNG en lugar de SVG
         btn_editar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/editar.png"))
-        btn_editar.setIconSize(QSize(20, 20))
+        btn_editar.setIconSize(QSize(24, 24))  # Aumentar tamau00f1o del icono
         btn_editar.setToolTip("Editar corredor")
         # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -198,7 +198,7 @@ class VistaCorredores(QWidget):
         btn_eliminar.setObjectName("btn_eliminar")
         # Usar directamente el icono PNG en lugar de SVG
         btn_eliminar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/eliminar.png"))
-        btn_eliminar.setIconSize(QSize(20, 20))
+        btn_eliminar.setIconSize(QSize(24, 24))  # Aumentar tamau00f1o del icono
         btn_eliminar.setToolTip("Eliminar corredor")
         # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)

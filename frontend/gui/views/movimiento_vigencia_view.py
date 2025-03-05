@@ -172,13 +172,15 @@ class VistaMovimientosVigencia(QWidget):
                 widget_acciones = QWidget()
                 layout_acciones = QHBoxLayout(widget_acciones)
                 layout_acciones.setContentsMargins(0, 0, 0, 0)
+                layout_acciones.setSpacing(0)  # Eliminar espacio entre botones
+                # Sin alineaciu00f3n central para que ocupen todo el espacio
 
                 btn_editar = QPushButton()
                 btn_editar.setObjectName("btn_editar")
                 btn_editar.setProperty("actionType", "edit")
                 # Usar un color definido y asegurar visibilidad
-                btn_editar.setIcon(IconHelper.get_icon("edit", "#1a73e8", size=16))
-                btn_editar.setIconSize(QSize(20, 20))
+                btn_editar.setIcon(IconHelper.get_icon("edit", "#1a73e8", size=24))
+                btn_editar.setIconSize(QSize(24, 24))  # Aumentar tamau00f1o del icono
                 btn_editar.setToolTip("Editar movimiento")
                 # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
                 btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
