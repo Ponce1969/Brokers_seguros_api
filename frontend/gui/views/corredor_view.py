@@ -97,18 +97,18 @@ class VistaCorredores(QWidget):
 
         # Tabla de corredores
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(7)  # Aumentado para incluir más campos
+        self.tabla.setColumnCount(6)  # Campos simplificados
         self.tabla.setHorizontalHeaderLabels(
-            ["Número", "Nombre", "Email", "Teléfono", "Dirección", "Estado", "Acciones"]
+            ["Número", "Nombre", "Email", "Teléfono", "Estado", "Acciones"]
         )
         
         # Configurar propiedades visuales de la tabla
         header = self.tabla.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # Número
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Acciones
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Acciones
         self.tabla.setColumnWidth(0, 70)  # Ancho para número
-        self.tabla.setColumnWidth(6, 100)  # Ancho para acciones
+        self.tabla.setColumnWidth(5, 100)  # Ancho para acciones
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setGridStyle(Qt.PenStyle.DotLine)
         self.tabla.setShowGrid(True)
@@ -139,7 +139,6 @@ class VistaCorredores(QWidget):
                         QTableWidgetItem(corredor.nombre),
                         QTableWidgetItem(corredor.email),
                         QTableWidgetItem(corredor.telefono or ""),
-                        QTableWidgetItem(corredor.direccion or ""),
                         QTableWidgetItem("Activo" if corredor.activo else "Inactivo"),
                     ]
 
@@ -167,26 +166,26 @@ class VistaCorredores(QWidget):
         """Agrega botones de acción para cada corredor en la tabla"""
         widget_acciones = QWidget()
         
-        # Usamos QHBoxLayout en lugar de QGridLayout
+        # Usamos QHBoxLayout para alineación perfecta (según memoria)
         layout_acciones = QHBoxLayout(widget_acciones)
         layout_acciones.setContentsMargins(0, 0, 0, 0)  # Eliminar todos los márgenes
-        layout_acciones.setSpacing(0)  # Eliminar espacio entre botones
-        # Quitar alineación central para que ocupen todo el espacio
+        layout_acciones.setSpacing(5)  # Espaciado óptimo entre botones (según memoria)
+        layout_acciones.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Alineación central (según memoria)
         
-        # Colores fijos para los botones
-        color_edit = "#1a73e8"  # Azul principal
-        color_delete = "#d93025"  # Rojo para acciones de eliminación
+        # Ya tenemos las constantes COLOR_PRIMARY y COLOR_DANGER definidas arriba
+        # que se usarán para los iconos de editar y eliminar
 
         # Botón de editar usando propiedades para identificar en QSS
         btn_editar = QPushButton()
         btn_editar.setObjectName("btn_editar")
-        # Usar directamente el icono PNG en lugar de SVG
-        btn_editar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/editar.png"))
-        btn_editar.setIconSize(QSize(24, 24))  # Aumentar tamau00f1o del icono
+        # Usar IconHelper para obtener el SVG correcto
+        btn_editar.setIcon(IconHelper.get_icon("edit", COLOR_PRIMARY))
+        btn_editar.setIconSize(QSize(16, 16))  # Tamaño óptimo según memorias
+        btn_editar.setFixedSize(28, 28)  # Tamaño óptimo según memorias
         btn_editar.setToolTip("Editar corredor")
-        # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_editar.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Aplicamos propiedades para identificar en QSS
+        # Marcar como botón de acción en tabla para estilos CSS
+        btn_editar.setProperty("tableAction", "true")
         btn_editar.setProperty("actionType", "edit")
 
         btn_editar.clicked.connect(
@@ -196,13 +195,14 @@ class VistaCorredores(QWidget):
         # Botón de eliminar usando propiedades para identificar en QSS
         btn_eliminar = QPushButton()
         btn_eliminar.setObjectName("btn_eliminar")
-        # Usar directamente el icono PNG en lugar de SVG
-        btn_eliminar.setIcon(QIcon("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/eliminar.png"))
-        btn_eliminar.setIconSize(QSize(24, 24))  # Aumentar tamau00f1o del icono
+        # Usar IconHelper para obtener el SVG correcto
+        btn_eliminar.setIcon(IconHelper.get_icon("delete", COLOR_DANGER))
+        btn_eliminar.setIconSize(QSize(16, 16))  # Tamaño óptimo según memorias
+        btn_eliminar.setFixedSize(28, 28)  # Tamaño óptimo según memorias
         btn_eliminar.setToolTip("Eliminar corredor")
-        # Eliminar restricciu00f3n de tamau00f1o fijo para que ocupe todo el espacio disponible
         btn_eliminar.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Aplicamos propiedades para identificar en QSS
+        # Marcar como botón de acción en tabla para estilos CSS
+        btn_eliminar.setProperty("tableAction", "true")
         btn_eliminar.setProperty("actionType", "delete")
 
         btn_eliminar.clicked.connect(
@@ -214,7 +214,7 @@ class VistaCorredores(QWidget):
         layout_acciones.addWidget(btn_eliminar)
 
         # Establecer el widget en la celda con alineación central
-        self.tabla.setCellWidget(i, 6, widget_acciones)
+        self.tabla.setCellWidget(i, 5, widget_acciones)
 
     def filtrar_corredores(self):
         """Filtra la tabla según el texto de búsqueda"""

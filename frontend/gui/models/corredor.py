@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Corredor:
     """
-    Modelo de datos para representar un Corredor
+    Modelo de datos para representar un Corredor con campos simplificados
     """
 
     # Campos requeridos
@@ -25,19 +25,15 @@ class Corredor:
     nombre: str
     telefono: str
     direccion: str
-    fecha_registro: Optional[date] = field(default=None)
     activo: bool = field(default=True)
-
-    # Campos adicionales (pueden ser None)
-    nombres: Optional[str] = field(default=None)
-    apellidos: Optional[str] = field(default=None)
-    documento: Optional[str] = field(default=None)
-    localidad: Optional[str] = field(default=None)
-    movil: Optional[str] = field(default=None)
-    observaciones: Optional[str] = field(default=None)
-    matricula: Optional[str] = field(default=None)
-    especializacion: Optional[str] = field(default=None)
+    fecha_registro: Optional[date] = field(default=None)
     fecha_alta: Optional[date] = field(default=None)
+    
+    # Campos nuevos para gestión de usuarios
+    rol: str = field(default="corredor")  # "corredor" o "admin"
+    password: Optional[str] = field(default=None)  # Para nuevos corredores
+    
+    # Mantenemos algunos campos opcionales para compatibilidad con la API
     fecha_baja: Optional[date] = field(default=None)
 
     @classmethod
@@ -98,17 +94,10 @@ class Corredor:
                 direccion=data.get("direccion", ""),
                 fecha_registro=fecha_registro,
                 activo=data.get("activo", True),
-                # Campos adicionales
-                nombres=data.get("nombres"),
-                apellidos=data.get("apellidos"),
-                documento=data.get("documento"),
-                localidad=data.get("localidad"),
-                movil=data.get("movil"),
-                observaciones=data.get("observaciones"),
-                matricula=data.get("matricula"),
-                especializacion=data.get("especializacion"),
                 fecha_alta=fecha_alta,
                 fecha_baja=fecha_baja,
+                rol=data.get("rol", "corredor"),
+                password=data.get("password")
             )
         except Exception as e:
             logger.error(f"Error al crear Corredor desde diccionario: {e}")
@@ -131,18 +120,14 @@ class Corredor:
             "direccion": self.direccion,
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "activo": self.activo,
-            # Campos adicionales
-            "nombres": self.nombres,
-            "apellidos": self.apellidos,
-            "documento": self.documento,
-            "localidad": self.localidad,
-            "movil": self.movil,
-            "observaciones": self.observaciones,
-            "matricula": self.matricula,
-            "especializacion": self.especializacion,
+            "rol": self.rol,
             "fecha_alta": self.fecha_alta.isoformat() if self.fecha_alta else None,
             "fecha_baja": self.fecha_baja.isoformat() if self.fecha_baja else None,
         }
+        
+        # Solo incluir password si existe y no enviarlo en respuestas de API
+        if hasattr(self, 'password') and self.password:
+            data["password"] = "[PROTEGIDO]"  # No mostramos la contraseña real en la interfaz
         return {k: v for k, v in data.items() if v is not None}
     
     def _parse_fecha(self, valor: str) -> Optional[date]:

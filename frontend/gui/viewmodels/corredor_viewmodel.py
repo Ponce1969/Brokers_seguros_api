@@ -110,32 +110,37 @@ class CorredorViewModel(QObject):
 
     def crear_corredor(self, datos: dict) -> None:
         """
-        Crea un nuevo corredor
+        Crea un nuevo corredor con los campos simplificados
 
         Args:
             datos: Diccionario con los datos del corredor
         """
         try:
             # Validar datos requeridos
-            campos_requeridos = ["numero", "apellidos", "documento", "direccion", "localidad", "email"]
+            campos_requeridos = ["numero", "nombre", "email", "direccion"]
             for campo in campos_requeridos:
                 if not datos.get(campo):
                     raise ValueError(f"El campo {campo} es requerido")
+                    
+            # Validar que el correo tenga formato correcto
+            if "@" not in datos.get("email", ""):
+                raise ValueError("El correo electrónico debe tener un formato válido")
+                
+            # Asegurar que la contraseña esté presente para nuevos corredores
+            if not datos.get("password"):
+                raise ValueError("La contraseña es requerida para nuevos corredores")
 
             # Adaptar los datos al formato esperado por la API
             datos_api = {
                 "numero": int(datos.get("numero")),  # Asegurar que sea entero
-                "nombres": datos.get("nombres", ""),
-                "apellidos": datos.get("apellidos"),
-                "documento": datos.get("documento"),
-                "direccion": datos.get("direccion"),
-                "localidad": datos.get("localidad"),
-                "telefonos": datos.get("telefonos"),
-                "movil": datos.get("movil"),
+                "nombre": datos.get("nombre"),  # Campo único para nombre completo
+                "direccion": datos.get("direccion", ""),
+                "telefono": datos.get("telefono", ""),  # Teléfono único
                 "mail": datos.get("email"),  # Mapear 'email' del frontend a 'mail' para la API
-                "matricula": datos.get("matricula"),
-                "especializacion": datos.get("especializacion"),
-                "fecha_alta": date.today().isoformat() if datos.get("fecha_alta") is None else datos.get("fecha_alta"),
+                "password": datos.get("password"),  # Nueva contraseña
+                "rol": datos.get("rol", "corredor"),  # Rol (corredor o admin)
+                "activo": datos.get("activo", True),  # Estado activo/inactivo
+                "fecha_alta": date.today().isoformat()  # Fecha de alta automática
             }
 
             self._current_operation = "crear"
@@ -170,7 +175,7 @@ class CorredorViewModel(QObject):
 
     def actualizar_corredor(self, id: int, datos: dict) -> None:
         """
-        Actualiza un corredor existente
+        Actualiza un corredor existente con los campos simplificados
 
         Args:
             id: ID del corredor a actualizar
@@ -180,8 +185,35 @@ class CorredorViewModel(QObject):
             logger.info(f"📝 Actualizando corredor {id}...")
             self._current_operation = "actualizar"
             
-            # Adaptar los datos al formato esperado por la API
-            datos_api = {k: v for k, v in datos.items() if v is not None}
+            # Validar campos requeridos para actualización
+            campos_requeridos = ["numero", "nombre", "email", "direccion"]
+            for campo in campos_requeridos:
+                if campo in datos and not datos.get(campo):
+                    raise ValueError(f"El campo {campo} es requerido")
+                    
+            # Validar que el correo tenga formato correcto si está presente
+            if "email" in datos and "@" not in datos.get("email", ""):
+                raise ValueError("El correo electrónico debe tener un formato válido")
+            
+            # Mapear los nombres de campos del frontend a los campos de la API
+            datos_api = {}
+            
+            # Mapeo de campos frontend -> API
+            mapping = {
+                "numero": "numero",
+                "nombre": "nombre",
+                "email": "mail",
+                "telefono": "telefono",
+                "direccion": "direccion",
+                "password": "password",
+                "rol": "rol",
+                "activo": "activo"
+            }
+            
+            # Construir el diccionario de datos para la API
+            for campo_frontend, campo_api in mapping.items():
+                if campo_frontend in datos and datos[campo_frontend] is not None:
+                    datos_api[campo_api] = datos[campo_frontend]
             
             self.api.put(f"api/v1/corredores/{id}", datos_api)
         except Exception as e:
