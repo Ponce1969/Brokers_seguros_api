@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -21,7 +23,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QIcon
 
-from ..viewmodels.corredor_viewmodel import CorredorViewModel
+from ..viewmodels.corredor.corredor_viewmodel import CorredorViewModel
 from ..utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 from .dialogo_corredor import DialogoCorredor
 
@@ -54,8 +56,30 @@ class VistaCorredores(QWidget):
     def cargar_estilos(self):
         """Carga los estilos usando el ThemeManager"""
         try:
-            # Aplicar la hoja de estilos procesada a este widget
-            # No se requiere estilo específico aquí, ya se aplica a nivel de aplicación
+            # Aplicar la hoja de estilos específicas para controlar el tamaño
+            self.setStyleSheet("""
+            /* Estilos específicos para la vista de corredores */
+            QTableWidget {
+                max-width: 1200px; /* Limitar expansión horizontal */
+            }
+            QTableWidget QHeaderView::section {
+                padding: 5px;
+                background-color: #e8eaed;
+                border: 1px solid #cccccc;
+                color: #202124;
+            }
+            /* Asegurar que los elementos dentro de la tabla no expandan la ventana */
+            QTableWidget::item {
+                max-width: 250px;
+                margin: 0;
+                padding: 2px;
+            }
+            """)
+            
+            # Establecer política de tamaño para la vista principal más restrictiva
+            # para evitar que crezca más allá de lo necesario
+            self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
+            
             logger.info("✅ Estilos aplicados al widget de corredores")
         except Exception as e:
             logger.error(f"❌ Error al aplicar los estilos: {e}")
@@ -97,25 +121,51 @@ class VistaCorredores(QWidget):
 
         # Tabla de corredores
         self.tabla = QTableWidget()
-        self.tabla.setColumnCount(6)  # Campos simplificados
+        self.tabla.setColumnCount(8)  # Incluir documento como columna adicional
         self.tabla.setHorizontalHeaderLabels(
-            ["Número", "Nombre", "Email", "Teléfono", "Estado", "Acciones"]
+            ["Número", "Nombre", "Email", "Teléfono", "Dirección", "Documento", "Estado", "Acciones"]
         )
+        
+        # Establecer tamaño máximo para la tabla para evitar expansiones excesivas
+        self.tabla.setMaximumWidth(1200)
+        
+        # Establecer política de tamaño para la tabla con expansión controlada
+        self.tabla.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Configurar propiedades visuales de la tabla
         header = self.tabla.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # Número
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Acciones
-        self.tabla.setColumnWidth(0, 70)  # Ancho para número
-        self.tabla.setColumnWidth(5, 100)  # Ancho para acciones
+        
+        # Unificar los modos de redimensionamiento para evitar recálculos constantes
+        # Usar Fixed para columnas críticas y Stretch para el resto para mejor distribución
+        for i in range(self.tabla.columnCount()):
+            if i in [0, 6]:  # Número y Acciones - modo fijo
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
+            else:  # Resto de columnas - modo stretch para mejor distribución
+                header.setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
+        
+        # Establecer anchos iniciales de columnas
+        self.tabla.setColumnWidth(0, 70)   # Ancho para número
+        self.tabla.setColumnWidth(7, 100)  # Ancho para acciones
+        self.tabla.setColumnWidth(1, 150)  # Ancho para nombre
+        self.tabla.setColumnWidth(2, 180)  # Ancho para email
+        self.tabla.setColumnWidth(3, 120)  # Ancho para teléfono
+        self.tabla.setColumnWidth(4, 200)  # Ancho para dirección
+        self.tabla.setColumnWidth(5, 120)  # Ancho para documento
+        self.tabla.setColumnWidth(6, 80)   # Ancho para estado
+        
+        # Limitar tamaños de secciones
+        header.setMinimumSectionSize(70)
+        header.setMaximumSectionSize(250)  # Evitar que las columnas se expandan demasiado
+        
         self.tabla.setAlternatingRowColors(True)
         self.tabla.setGridStyle(Qt.PenStyle.DotLine)
         self.tabla.setShowGrid(True)
         
-        # Asegurar que el texto del encabezado sea visible con fondo claro
-        header.setStyleSheet("QHeaderView::section { color: #202124; background-color: #e8eaed; }")
-
+        # Agregar la tabla directamente al layout (QTableWidget ya tiene scrolling incorporado)
+        # y establecer política de tamaño adecuada para evitar expansiones innecesarias
+        self.tabla.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Agregar la tabla directamente al layout principal
         layout.addWidget(self.tabla)
 
     def conectar_senales(self):
@@ -139,6 +189,8 @@ class VistaCorredores(QWidget):
                         QTableWidgetItem(corredor.nombre),
                         QTableWidgetItem(corredor.email),
                         QTableWidgetItem(corredor.telefono or ""),
+                        QTableWidgetItem(corredor.direccion or ""),
+                        QTableWidgetItem(corredor.documento or ""),  # Nuevo campo documento
                         QTableWidgetItem("Activo" if corredor.activo else "Inactivo"),
                     ]
 
@@ -149,6 +201,11 @@ class VistaCorredores(QWidget):
                                 Qt.AlignmentFlag.AlignRight
                                 | Qt.AlignmentFlag.AlignVCenter
                             )
+                        # Limitar el contenido del texto para evitar expansiones
+                        text = item.text()
+                        if len(text) > 40 and col not in [0, 5]:
+                            item.setToolTip(text)  # Mostrar texto completo en tooltip
+                            item.setText(text[:37] + "...")
                         self.tabla.setItem(i, col, item)
 
                     if self.es_admin:
@@ -157,7 +214,11 @@ class VistaCorredores(QWidget):
                     logger.error(f"Error al procesar corredor: {e}")
                     continue
 
-            self.tabla.resizeColumnsToContents()
+            # No hacer un resizeColumnsToContents() completo que podría cambiar el tamaño
+            # En su lugar, asegurarse que las columnas respeten los límites establecidos
+            for i in range(self.tabla.columnCount()):
+                if i not in [0, 6] and self.tabla.columnWidth(i) > 250:
+                    self.tabla.setColumnWidth(i, 250)  # Limitar a un máximo de 250px
         except Exception as e:
             logger.error(f"Error al actualizar la tabla: {e}")
             self.mostrar_error("Error al actualizar la tabla")
@@ -214,7 +275,7 @@ class VistaCorredores(QWidget):
         layout_acciones.addWidget(btn_eliminar)
 
         # Establecer el widget en la celda con alineación central
-        self.tabla.setCellWidget(i, 5, widget_acciones)
+        self.tabla.setCellWidget(i, 7, widget_acciones)
 
     def filtrar_corredores(self):
         """Filtra la tabla según el texto de búsqueda"""
@@ -253,10 +314,16 @@ class VistaCorredores(QWidget):
 
         corredor = self.viewmodel.buscar_corredor(id)
         if corredor:
-            dialogo = DialogoCorredor(self, corredor)
-            if dialogo.exec():
-                datos = dialogo.obtener_datos()
-                self.viewmodel.actualizar_corredor(id, datos)
+            try:
+                dialogo = DialogoCorredor(self, corredor)
+                # Conectar la señal datos_guardados a un lambda que actualice el corredor
+                dialogo.datos_guardados.connect(
+                    lambda datos: self.viewmodel.actualizar_corredor(id, datos)
+                )
+                dialogo.exec()
+            except Exception as e:
+                logger.error(f"❌ Error al mostrar diálogo de edición: {e}")
+                self.mostrar_error("Error al abrir el formulario de edición de corredor")
 
     def confirmar_eliminar(self, id: int):
         """Muestra diálogo de confirmación para eliminar un corredor"""
@@ -277,3 +344,36 @@ class VistaCorredores(QWidget):
     def mostrar_error(self, mensaje: str):
         """Muestra un mensaje de error"""
         QMessageBox.critical(self, "Error", mensaje)
+        
+    def resizeEvent(self, event):
+        """Controla el comportamiento cuando se cambia el tamaño de la ventana"""
+        super().resizeEvent(event)
+        # Ajustar tamaños de columnas de forma proporcional cuando el ancho cambia
+        table_width = self.tabla.width() - 170  # Restar ancho de columnas fijas (número y acciones)
+        for i in range(1, 6):  # Columnas ajustables (excluir número y acciones)
+            self.tabla.setColumnWidth(i, int(table_width / 5))  # Distribuir equitativamente
+        
+        # Solo ejecutar este código si la tabla ya está inicializada
+        if hasattr(self, 'tabla'):
+            # Obtener el ancho disponible
+            tabla_width = self.tabla.width()
+            
+            # Mantener anchos fijos para columnas críticas
+            self.tabla.setColumnWidth(0, 70)  # Número
+            self.tabla.setColumnWidth(6, 100)  # Acciones
+            
+            # Ancho disponible para columnas restantes
+            remaining_width = tabla_width - 170  # 70 + 100
+            
+            # Asegurarse de que todas las columnas tengan un ancho razonable
+            col_widths = [150, 180, 120, 200, 80]  # Anchos deseados para columnas 1-5
+            total_desired = sum(col_widths)
+            
+            # Si el espacio disponible es menor que el deseado, ajustar proporcionalmente
+            if remaining_width < total_desired and remaining_width > 0:
+                scale_factor = remaining_width / total_desired
+                col_widths = [max(int(w * scale_factor), 70) for w in col_widths]
+            
+            # Aplicar anchos calculados a las columnas dinámicas
+            for i, width in enumerate(col_widths, 1):
+                self.tabla.setColumnWidth(i, width)

@@ -17,7 +17,7 @@ from typing import Optional, Dict
 import logging
 from datetime import datetime
 from ..models.corredor import Corredor
-from ..viewmodels.corredor_viewmodel import CorredorItemModel
+from ..viewmodels.corredor.corredor_itemmodel import CorredorItemModel
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -105,6 +105,12 @@ class DialogoCorredor(QDialog):
         self.campos["email"].setPlaceholderText("correo@ejemplo.com")
         self.campos["email"].setStyleSheet(campo_style)
         form_layout.addRow("Email *:", self.campos["email"])
+        
+        # Documento (campo obligatorio para el backend)
+        self.campos["documento"] = QLineEdit()
+        self.campos["documento"].setPlaceholderText("Número de documento")
+        self.campos["documento"].setStyleSheet(campo_style)
+        form_layout.addRow("Documento *:", self.campos["documento"])
         
         # Contraseña (obligatoria solo para nuevos corredores)
         self.campos["password"] = QLineEdit()
@@ -239,6 +245,8 @@ class DialogoCorredor(QDialog):
             return False, "El email es requerido"
         if not self.campos["direccion"].text().strip():
             return False, "La dirección es requerida"
+        if not self.campos["documento"].text().strip():
+            return False, "El documento es requerido"
             
         # Validar contraseña solo para nuevos corredores
         if self.es_nuevo and not self.campos["password"].text():
@@ -309,7 +317,7 @@ class DialogoCorredor(QDialog):
         viewmodel = None
         try:
             from ..core.di_container import contenedor
-            from ..viewmodels.corredor_viewmodel import CorredorViewModel
+            from ..viewmodels.corredor.corredor_viewmodel import CorredorViewModel
             viewmodel = contenedor.resolver(CorredorViewModel)
             
             # Intentar buscar el corredor en el ViewModel
@@ -326,6 +334,7 @@ class DialogoCorredor(QDialog):
                     self.campos["email"].setText(corredor_encontrado.email)
                     self.campos["telefono"].setText(corredor_encontrado.telefono)
                     self.campos["direccion"].setText(corredor_encontrado.direccion)
+                    self.campos["documento"].setText(corredor_encontrado.documento if hasattr(corredor_encontrado, 'documento') else "")
                     self.campos["activo"].setChecked(corredor_encontrado.activo)
                     
                     # Ajustar rol si está disponible
@@ -394,6 +403,7 @@ class DialogoCorredor(QDialog):
             "telefono": self.campos["telefono"].text().strip(),
             "email": self.campos["email"].text().strip(),
             "direccion": self.campos["direccion"].text().strip(),
+            "documento": self.campos["documento"].text().strip(),  # Campo requerido por el backend
             "activo": self.campos["activo"].isChecked(),
             "rol": rol,  # Asegurarse de que sea 'rol' y no 'role'
         }

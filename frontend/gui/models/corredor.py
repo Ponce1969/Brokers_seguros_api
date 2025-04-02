@@ -25,6 +25,7 @@ class Corredor:
     nombre: str
     telefono: str
     direccion: str
+    documento: str = field(default="")  # Campo requerido por el backend
     activo: bool = field(default=True)
     fecha_registro: Optional[date] = field(default=None)
     fecha_alta: Optional[date] = field(default=None)
@@ -92,6 +93,7 @@ class Corredor:
                 nombre=data.get("nombre", ""),
                 telefono=data.get("telefono", ""),
                 direccion=data.get("direccion", ""),
+                documento=data.get("documento", ""),  # Procesar campo documento
                 fecha_registro=fecha_registro,
                 activo=data.get("activo", True),
                 fecha_alta=fecha_alta,
@@ -118,6 +120,7 @@ class Corredor:
             "nombre": self.nombre,
             "telefono": self.telefono,
             "direccion": self.direccion,
+            "documento": self.documento,  # Incluir campo documento
             "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
             "activo": self.activo,
             "rol": self.rol,
