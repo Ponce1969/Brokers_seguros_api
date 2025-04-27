@@ -208,7 +208,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-    image: url("resources/icons/dropdown.svg");
+    image: url("/home/gonzapython/CascadeProjects/Brokerseguros/frontend/gui/resources/icons/dorpdown.png");
     width: 12px;
     height: 12px;
 }
