@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QIcon
 
-from ..viewmodels.corredor.corredor_viewmodel import CorredorViewModel
+from ..viewmodels.corredor_viewmodel import CorredorViewModel
 from ..utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 from .dialogo_corredor import DialogoCorredor
 

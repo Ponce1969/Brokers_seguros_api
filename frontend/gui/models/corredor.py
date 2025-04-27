@@ -15,27 +15,63 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Corredor:
     """
-    Modelo de datos para representar un Corredor con campos simplificados
+    Modelo de datos para representar un Corredor
     """
 
-    # Campos requeridos
-    id: int
-    numero: int
-    email: str
-    nombre: str
-    telefono: str
-    direccion: str
-    documento: str = field(default="")  # Campo requerido por el backend
-    activo: bool = field(default=True)
+    # Campos reflejando exactamente la estructura del backend
+    id: int  # Clave primaria técnica (autoincremental)
+    numero: int  # Identificador de negocio
+    email: str  # Email del corredor (en backend: 'email')
+    nombre: str  # Nombre completo (en backend: 'nombre')
+    telefono: str  # Teléfono (en backend: 'telefono')
+    direccion: str  # Dirección (en backend: 'direccion')
+    documento: str  # Documento (en backend: 'documento')
+    tipo: str = field(default="corredor")  # Tipo de corredor
     fecha_registro: Optional[date] = field(default=None)
+    activo: bool = field(default=True)
     fecha_alta: Optional[date] = field(default=None)
-    
-    # Campos nuevos para gestión de usuarios
+    fecha_baja: Optional[date] = field(default=None)
     rol: str = field(default="corredor")  # "corredor" o "admin"
     password: Optional[str] = field(default=None)  # Para nuevos corredores
     
     # Mantenemos algunos campos opcionales para compatibilidad con la API
     fecha_baja: Optional[date] = field(default=None)
+    
+    # Propiedades para compatibilidad con expectativas del backend
+    # Esto nos permite usar ambos nombres de campos (singular y plural)
+    # sin cambiar todo el código existente
+    
+    @property
+    def nombres(self) -> str:
+        """Obtiene el primer nombre del nombre completo (para backend)"""
+        partes = self.nombre.split(' ', 1)
+        return partes[0] if partes else ""
+        
+    @property
+    def apellidos(self) -> str:
+        """Obtiene los apellidos del nombre completo (para backend)"""
+        partes = self.nombre.split(' ', 1)
+        return partes[1] if len(partes) > 1 else "Sin Apellido"
+    
+    @property
+    def mail(self) -> str:
+        """Alias para email (para backend)"""
+        return self.email
+        
+    @property
+    def telefonos(self) -> str:
+        """Alias para telefono (para backend)"""
+        return self.telefono
+        
+    @property
+    def movil(self) -> str:
+        """Alias para telefono como móvil (para backend)"""
+        return self.telefono
+        
+    @property
+    def localidad(self) -> str:
+        """Localidad por defecto (requerido por backend)"""
+        return "Montevideo"
 
     @classmethod
     def from_dict(cls, data: dict) -> "Corredor":
@@ -73,6 +109,8 @@ class Corredor:
                     logger.error(f"Error al procesar fecha_alta: {data['fecha_alta']}")
                     raise ValueError(f"Formato de fecha_alta inválido: {data['fecha_alta']}")
 
+
+
             fecha_baja = None
             if data.get("fecha_baja"):
                 try:
@@ -85,7 +123,7 @@ class Corredor:
             if fecha_alta and fecha_baja and fecha_alta > fecha_baja:
                 raise ValueError("La fecha de alta no puede ser posterior a la fecha de baja")
 
-            # Crear instancia con los datos básicos
+            # Crear instancia de corredor con campos que coincidan con el backend
             return cls(
                 id=int(data.get("id", 0)),
                 numero=int(data.get("numero", 0)),
@@ -93,7 +131,8 @@ class Corredor:
                 nombre=data.get("nombre", ""),
                 telefono=data.get("telefono", ""),
                 direccion=data.get("direccion", ""),
-                documento=data.get("documento", ""),  # Procesar campo documento
+                documento=data.get("documento", ""),
+                tipo=data.get("tipo", "corredor"),
                 fecha_registro=fecha_registro,
                 activo=data.get("activo", True),
                 fecha_alta=fecha_alta,
@@ -111,8 +150,21 @@ class Corredor:
         Convierte la instancia a un diccionario
 
         Returns:
-            dict: Diccionario con los datos del corredor
+            dict: Diccionario con los datos del corredor en formato compatible con el backend
         """
+        # Convertir fechas a string si existen
+        fecha_registro_str = None
+        if self.fecha_registro:
+            fecha_registro_str = self.fecha_registro.strftime("%Y-%m-%d")
+            
+        fecha_alta_str = None
+        if self.fecha_alta:
+            fecha_alta_str = self.fecha_alta.strftime("%Y-%m-%d")
+            
+        fecha_baja_str = None
+        if self.fecha_baja:
+            fecha_baja_str = self.fecha_baja.strftime("%Y-%m-%d")
+            
         data = {
             "id": self.id,
             "numero": self.numero,
@@ -121,11 +173,11 @@ class Corredor:
             "telefono": self.telefono,
             "direccion": self.direccion,
             "documento": self.documento,  # Incluir campo documento
-            "fecha_registro": self.fecha_registro.isoformat() if self.fecha_registro else None,
+            "fecha_registro": fecha_registro_str,
             "activo": self.activo,
             "rol": self.rol,
-            "fecha_alta": self.fecha_alta.isoformat() if self.fecha_alta else None,
-            "fecha_baja": self.fecha_baja.isoformat() if self.fecha_baja else None,
+            "fecha_alta": fecha_alta_str,
+            "fecha_baja": fecha_baja_str,
         }
         
         # Solo incluir password si existe y no enviarlo en respuestas de API

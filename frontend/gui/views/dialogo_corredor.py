@@ -17,7 +17,7 @@ from typing import Optional, Dict
 import logging
 from datetime import datetime
 from ..models.corredor import Corredor
-from ..viewmodels.corredor.corredor_itemmodel import CorredorItemModel
+from ..viewmodels.corredor_itemmodel import CorredorItemModel
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -39,12 +39,14 @@ class DialogoCorredor(QDialog):
         # Si no hay corredor, crear uno vacío con valores por defecto
         if corredor is None:
             corredor = Corredor(
-                id=0,  # Se generará al guardar
-                numero=0,  # Se generará al guardar
-                email="",  # Campo requerido
-                nombre="",  # Campo requerido
-                telefono="",  # Campo requerido
-                direccion="",  # Campo requerido
+                id=0,  # Clave primaria técnica (se generará al guardar)
+                numero=0,  # Identificador de negocio (se generará al guardar)
+                email="",  # Email (campo requerido)
+                nombre="",  # Nombre completo del corredor (campo requerido)
+                telefono="",  # Teléfono (campo requerido)
+                direccion="",  # Dirección (campo requerido)
+                documento="",  # Documento de identidad (campo requerido)
+                fecha_registro=None,
                 activo=True,
             )
         self.corredor = corredor
@@ -81,7 +83,7 @@ class DialogoCorredor(QDialog):
         # Estilo compacto para todos los campos
         campo_style = "height: 28px; padding: 4px; font-size: 12px;"
 
-        # Número de corredor
+        # Número de corredor (identificador de negocio)
         self.campos["numero"] = QSpinBox()
         self.campos["numero"].setMinimum(1)
         self.campos["numero"].setMaximum(99999)
@@ -92,7 +94,7 @@ class DialogoCorredor(QDialog):
         self.campos["nombre"] = QLineEdit()
         self.campos["nombre"].setPlaceholderText("Nombre completo del corredor")
         self.campos["nombre"].setStyleSheet(campo_style)
-        form_layout.addRow("Nombre *:", self.campos["nombre"])
+        form_layout.addRow("Nombre completo *:", self.campos["nombre"])
 
         # Teléfono
         self.campos["telefono"] = QLineEdit()
@@ -183,9 +185,10 @@ class DialogoCorredor(QDialog):
         # Mapear solo los widgets que corresponden a campos en el modelo
         self.mapper.addMapping(self.campos["numero"], 0)  # Número de corredor
         self.mapper.addMapping(self.campos["nombre"], 1)  # Nombre completo
-        self.mapper.addMapping(self.campos["telefono"], 2)  # Teléfono
-        self.mapper.addMapping(self.campos["email"], 3)    # Email
+        self.mapper.addMapping(self.campos["email"], 2)    # Email
+        self.mapper.addMapping(self.campos["telefono"], 3)  # Teléfono
         self.mapper.addMapping(self.campos["direccion"], 4)  # Dirección
+        self.mapper.addMapping(self.campos["documento"], 5)  # Documento
         
         # Para el estado activo, necesitamos mapeo especial o manejarlo manualmente
         # self.mapper.addMapping(self.campos["activo"], 5)  # Activo
@@ -219,12 +222,13 @@ class DialogoCorredor(QDialog):
                     
             # Si no se encontró el corredor en el modelo, cargar los datos directamente
             if not corredor_encontrado:
-                # Cargar datos directamente desde el objeto Corredor
+                # Cargar datos directamente desde el objeto Corredor usando los campos del frontend
                 self.campos["numero"].setValue(self.corredor.numero)
                 self.campos["nombre"].setText(self.corredor.nombre)
                 self.campos["email"].setText(self.corredor.email)
                 self.campos["telefono"].setText(self.corredor.telefono)
                 self.campos["direccion"].setText(self.corredor.direccion)
+                self.campos["documento"].setText(self.corredor.documento)
                 self.campos["activo"].setChecked(self.corredor.activo)
 
     def validar_campos(self) -> tuple[bool, str]:
@@ -238,7 +242,7 @@ class DialogoCorredor(QDialog):
         if self.campos["numero"].value() <= 0:
             return False, "El número de corredor es requerido"
         if not self.campos["nombre"].text().strip():
-            return False, "El nombre es requerido"
+            return False, "El nombre completo es requerido"
         if not self.campos["telefono"].text().strip():
             return False, "El teléfono es requerido"
         if not self.campos["email"].text().strip():
@@ -317,7 +321,7 @@ class DialogoCorredor(QDialog):
         viewmodel = None
         try:
             from ..core.di_container import contenedor
-            from ..viewmodels.corredor.corredor_viewmodel import CorredorViewModel
+            from ..viewmodels.corredor_viewmodel import CorredorViewModel
             viewmodel = contenedor.resolver(CorredorViewModel)
             
             # Intentar buscar el corredor en el ViewModel
@@ -382,22 +386,28 @@ class DialogoCorredor(QDialog):
     
     def obtener_datos(self) -> Dict:
         """
-        Obtiene los datos del formulario directamente de los campos
+        Obtiene los datos del formulario directamente de los campos en formato frontend.
+        La transformación al formato backend se realiza en corredor_network_handler.py.
 
         Returns:
-            Dict: Diccionario con los datos del corredor
+            Dict: Diccionario con los datos del corredor en formato frontend
         """
         logger.info("Obteniendo datos del formulario...")
         
-        # Nombre completo para corredor
+        # Obtener el nombre completo
         nombre = self.campos["nombre"].text().strip()
         
         # Obtener el rol seleccionado
         rol_index = self.campos["rol"].currentIndex()
         rol = "admin" if rol_index == 1 else "corredor"
         
-        # Datos básicos que siempre se envían
+        # Obtener el tipo de corredor (por defecto "corredor")
+        tipo = "corredor"  # Podría ser "productor" u otro tipo en el futuro
+        
+        # Datos básicos en formato frontend con los campos que el backend espera
         datos = {
+            # Mantener id internamente si existe pero no mostrarlo al usuario
+            "id": getattr(self.corredor, 'id', 0),  # Usar el id existente o 0 para nuevos
             "numero": self.campos["numero"].value(),
             "nombre": nombre,
             "telefono": self.campos["telefono"].text().strip(),
@@ -405,7 +415,8 @@ class DialogoCorredor(QDialog):
             "direccion": self.campos["direccion"].text().strip(),
             "documento": self.campos["documento"].text().strip(),  # Campo requerido por el backend
             "activo": self.campos["activo"].isChecked(),
-            "rol": rol,  # Asegurarse de que sea 'rol' y no 'role'
+            "rol": rol,  # Campo adicional para gestión de usuarios
+            "tipo": tipo  # Tipo de corredor
         }
         
         # Solo agregar fecha_registro si es un nuevo corredor
@@ -417,5 +428,5 @@ class DialogoCorredor(QDialog):
         if password:
             datos["password"] = password
             
-        logger.info(f"Datos obtenidos: {datos}")
+        logger.info(f"Datos obtenidos del formulario: {datos}")
         return datos

@@ -16,11 +16,15 @@ class CorredorItemModel(QAbstractTableModel):
 
     # Definir las columnas del modelo y sus títulos
     COLUMNS = [
-        ("numero", "Número"),
+        # No mostramos el ID técnico al usuario, solo se usa internamente
+        ("numero", "Número"),  # Identificador de negocio visible para el usuario
         ("nombre", "Nombre"),
         ("email", "Email"),
         ("telefono", "Teléfono"),
         ("direccion", "Dirección"),
+        ("documento", "Documento"),  # Documento de identidad
+        ("tipo", "Tipo"),  # Tipo de corredor
+        ("fecha_registro", "Fecha Registro"),
         ("activo", "Estado"),
     ]
 
@@ -68,13 +72,16 @@ class CorredorItemModel(QAbstractTableModel):
     def _crear_corredor_default(self) -> Corredor:
         """Crea un nuevo corredor con valores por defecto"""
         return Corredor(
-            id=0,
-            numero=0,
-            email="",
-            nombre="",
-            telefono="",
-            direccion="",
-            activo=True
+            id=0,  # Clave primaria técnica (no visible para el usuario)
+            numero=0,  # Identificador de negocio visible para el usuario
+            email="",  # Email
+            nombre="",  # Nombre completo del corredor
+            telefono="",  # Teléfono
+            direccion="",  # Dirección
+            documento="",  # Documento de identidad
+            tipo="corredor",  # Tipo de corredor
+            fecha_registro=None,
+            activo=True  # Estado activo/inactivo
         )
 
     def insertRow(self, row: int, parent=QModelIndex()) -> bool:
