@@ -12,7 +12,16 @@ def get_utc_now():
 
 
 class Usuario(Base):
-    """Modelo para la tabla usuarios."""
+    """Modelo para la tabla usuarios.
+    
+    Este modelo representa a los usuarios del sistema. Un usuario puede tener
+    diferentes roles (admin, corredor, asistente) y, dependiendo de su rol,
+    puede estar asociado o no a un corredor.
+    
+    Relaciones:
+    - Si el rol es 'corredor', debe tener un corredor_numero asociado
+    - Si el rol es 'admin' o 'asistente', puede o no tener un corredor_numero
+    """
 
     __tablename__ = "usuarios"
 
@@ -53,3 +62,37 @@ class Usuario(Base):
         back_populates="usuarios",
         lazy="selectin",
     )
+    
+    def has_permission(self, permission: str) -> bool:
+        """Verifica si el usuario tiene un permiso específico basado en su rol.
+        
+        Args:
+            permission: El permiso a verificar
+            
+        Returns:
+            bool: True si el usuario tiene el permiso, False en caso contrario
+        """
+        from app.core.roles import RolePermissions
+        
+        if self.is_superuser:
+            return True  # Los superusuarios tienen todos los permisos
+            
+        if not self.is_active:
+            return False  # Los usuarios inactivos no tienen permisos
+            
+        # Verificar si el rol del usuario tiene el permiso solicitado
+        return permission in RolePermissions.get_permissions(self.role)
+    
+    def validate_role_consistency(self) -> bool:
+        """Valida que el rol del usuario sea consistente con sus relaciones.
+        
+        Returns:
+            bool: True si el rol es consistente, False en caso contrario
+        """
+        from app.core.roles import Role
+        
+        # Si el rol es corredor, debe tener un corredor asociado
+        if self.role == Role.CORREDOR and not self.corredor_numero:
+            return False
+            
+        return True

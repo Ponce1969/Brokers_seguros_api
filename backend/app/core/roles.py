@@ -9,10 +9,11 @@ class Role(str, Enum):
 
 
 class RolePermissions:
-    """Define los permisos por rol"""
+    """Define los permisos por rol y proporciona métodos para verificar permisos"""
 
     PERMISSIONS = {
         Role.ADMIN: {
+            # Permisos de administrador (acceso total)
             "usuarios_crear",
             "usuarios_ver",
             "usuarios_editar",

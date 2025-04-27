@@ -7,6 +7,7 @@ from app.api.deps import get_current_active_user
 from app.core.permissions import require_permissions
 from app.core.roles import Role
 from app.db.crud.usuario import usuario_crud
+from app.db.crud.corredor import corredor_crud
 from app.db.database import get_db
 from app.db.models.usuario import Usuario as UsuarioModel
 from app.schemas.usuario import Usuario, UsuarioCreate, UsuarioUpdate
@@ -46,12 +47,21 @@ async def create_usuario(
             detail="Solo los administradores pueden crear otros administradores",
         )
 
-    # Si es un usuario corredor, validar el número de corredor
-    if usuario_in.role == Role.CORREDOR and not usuario_in.corredor_numero:
-        raise HTTPException(
-            status_code=400,
-            detail="El número de corredor es requerido para usuarios corredores",
-        )
+    # Si es un usuario corredor, validar el número de corredor y su existencia
+    if usuario_in.role == Role.CORREDOR:
+        if not usuario_in.corredor_numero:
+            raise HTTPException(
+                status_code=400,
+                detail="El número de corredor es requerido para usuarios corredores",
+            )
+        
+        # Verificar que el corredor exista
+        corredor = await corredor_crud.get_by_numero(db, numero=usuario_in.corredor_numero)
+        if not corredor:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No se encontró un corredor con el número {usuario_in.corredor_numero}",
+            )
 
     return await usuario_crud.create(db, obj_in=usuario_in)
 
@@ -95,12 +105,21 @@ async def update_usuario(
             detail="Solo los administradores pueden modificar otros administradores",
         )
 
-    # Si se está actualizando a un usuario corredor, validar el número de corredor
-    if usuario_in.role == Role.CORREDOR and not usuario_in.corredor_numero:
-        raise HTTPException(
-            status_code=400,
-            detail="El número de corredor es requerido para usuarios corredores",
-        )
+    # Si se está actualizando a un usuario corredor, validar el número de corredor y su existencia
+    if usuario_in.role == Role.CORREDOR:
+        if not usuario_in.corredor_numero:
+            raise HTTPException(
+                status_code=400,
+                detail="El número de corredor es requerido para usuarios corredores",
+            )
+            
+        # Verificar que el corredor exista
+        corredor = await corredor_crud.get_by_numero(db, numero=usuario_in.corredor_numero)
+        if not corredor:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No se encontró un corredor con el número {usuario_in.corredor_numero}",
+            )
 
     return await usuario_crud.update(db, db_obj=usuario, obj_in=usuario_in)
 
