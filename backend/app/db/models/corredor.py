@@ -5,11 +5,23 @@ from ..base_class import Base
 
 
 class Corredor(Base):
+    """Modelo para la tabla corredores.
+    
+    Este modelo representa a los corredores de seguros en el sistema.
+    Un corredor puede tener usuarios asociados con diferentes roles.
+    
+    Relaciones:
+    - Un corredor puede tener múltiples usuarios asociados
+    - Un corredor puede tener múltiples clientes asociados
+    - Un corredor puede tener múltiples movimientos asociados
+    """
+    
     __tablename__ = "corredores"
 
     # Identificación
-    id = Column(Integer, primary_key=True, autoincrement=True)  # ID autogenerado
-    numero = Column(Integer, unique=True, nullable=False)  # Número de corredor ingresado por el admin
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # Clave primaria técnica
+    numero = Column(Integer, unique=True, index=True, nullable=False)  # Identificador de negocio
+    tipo = Column(String(20), default="corredor")  # Tipo de corredor: corredor, productor, etc.
     nombres = Column(String(30))  # Nombres del corredor
     apellidos = Column(String(30), nullable=False)  # Apellidos del corredor
     documento = Column(String(20), nullable=False, unique=True)  # Número de documento

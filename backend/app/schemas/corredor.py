@@ -16,6 +16,7 @@ class CorredorBase(BaseModel):
     observaciones: Optional[str] = None
     matricula: Optional[str] = None
     especializacion: Optional[str] = None
+    tipo: Optional[str] = "corredor"  # Tipo de corredor: corredor, productor, etc.
 
 
 class CorredorCreate(CorredorBase):
@@ -28,12 +29,14 @@ class CorredorUpdate(CorredorBase):
 
 
 class CorredorResponse(BaseModel):
-    id: int
-    numero: int
+    id: int  # Clave primaria técnica (autoincremental)
+    numero: int  # Identificador de negocio
     email: str
     nombre: str
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+    documento: Optional[str] = None  # Incluimos el documento en la respuesta
+    tipo: Optional[str] = "corredor"  # Tipo de corredor
     fecha_registro: Optional[date] = None
     activo: bool = True
     
@@ -69,16 +72,21 @@ class CorredorResponse(BaseModel):
             # Calcular si está activo
             result['activo'] = True if 'fecha_baja' not in result or result.get('fecha_baja') is None else False
             
+            # Asegurar que tipo esté presente
+            if 'tipo' not in result:
+                result['tipo'] = 'corredor'
+            
             return result
         
         # Si es un objeto ORM (normalmente de una consulta GET)
         result = {}
         
-        # Copiar ID y número
+        # ID y número son campos separados
         if hasattr(data, 'id'):
-            result['id'] = data.id
+            result['id'] = data.id  # Usar el ID real
+        
         if hasattr(data, 'numero'):
-            result['numero'] = data.numero
+            result['numero'] = data.numero  # Usar el número de corredor
             
         # Mapear mail a email
         if hasattr(data, 'mail'):
@@ -97,9 +105,16 @@ class CorredorResponse(BaseModel):
         if hasattr(data, 'direccion'):
             result['direccion'] = data.direccion
             
+        # Copiar documento directamente
+        if hasattr(data, 'documento'):
+            result['documento'] = data.documento
+            
         # Fecha de registro y activo (suponemos true por defecto)
         result['fecha_registro'] = getattr(data, 'fecha_alta', None)
         result['activo'] = True if not hasattr(data, 'fecha_baja') or data.fecha_baja is None else False
+        
+        # Incluir el tipo de corredor
+        result['tipo'] = getattr(data, 'tipo', 'corredor')
         
         return result
 

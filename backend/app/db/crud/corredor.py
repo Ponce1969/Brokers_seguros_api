@@ -24,28 +24,36 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
         Formatea un corredor al formato de respuesta estándar.
         """
         return {
-            "id": corredor.id,
-            "numero": corredor.numero,
+            "id": corredor.id,  # ID real (autoincremental)
+            "numero": corredor.numero,  # Número de corredor (identificador de negocio)
             "email": corredor.mail,
             "nombre": f"{corredor.nombres or ''} {corredor.apellidos or ''}".strip(),
             "telefono": corredor.telefonos or "",
             "direccion": corredor.direccion or "",
+            "documento": corredor.documento or "",  # Incluir documento
             "fecha_registro": corredor.fecha_alta,
             "activo": corredor.fecha_baja is None,
         }
 
     async def get(self, db: AsyncSession, *, id: int) -> Optional[Corredor]:
         """
-        Obtiene un corredor por su ID.
-
+        Obtener un corredor por su ID (clave primaria)
+        """
+        stmt = select(Corredor).where(Corredor.id == id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+        
+    async def get_by_numero(self, db: AsyncSession, numero: int) -> Optional[Corredor]:
+        """
+        Obtener un corredor por su número (identificador de negocio)
         Args:
             db: Sesión de base de datos
-            id: ID del corredor
+            numero: Número del corredor (identificador de negocio)
 
         Returns:
             Optional[Corredor]: Corredor encontrado o None
         """
-        query = select(Corredor).where(Corredor.id == id)
+        query = select(Corredor).where(Corredor.numero == numero)
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
@@ -100,12 +108,12 @@ class CRUDCorredor(CRUDBase[Corredor, CorredorCreate, CorredorUpdate]):
 
         Args:
             db: Sesión de base de datos
-            id: ID del corredor
+            id: Número del corredor (usado como ID)
 
         Returns:
             Optional[Corredor]: Corredor eliminado o None
         """
-        obj = await self.get(db, id=id)
+        obj = await self.get(db, id=id)  # get ya está actualizado para usar numero
         if obj:
             await db.delete(obj)
             await db.commit()

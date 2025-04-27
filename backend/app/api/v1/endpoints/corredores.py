@@ -26,9 +26,14 @@ router = APIRouter()
 
 async def get_corredor_or_404(db: AsyncSession, corredor_id: int) -> Corredor:
     """
-    Obtiene un corredor por ID o lanza un HTTPException 404 si no existe.
+    Obtiene un corredor por ID o por número y lanza un HTTPException 404 si no existe.
     """
+    # Primero intentamos buscar por ID (nueva estructura)
     corredor = await corredor_crud.get(db, id=corredor_id)
+    
+    # Si no encontramos por ID, intentamos buscar por número (para compatibilidad)
+    if not corredor:
+        corredor = await corredor_crud.get_by_numero(db, numero=corredor_id)
     if not corredor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Corredor no encontrado"
@@ -143,6 +148,7 @@ async def update_corredor(
     Actualizar corredor.
     """
     try:
+        logger.info(f"Datos recibidos para actualizar corredor: {corredor_in}")
         corredor = await get_corredor_or_404(db, corredor_id)
         corredor = await corredor_crud.update(db, db_obj=corredor, obj_in=corredor_in)
         return CorredorResponse.model_validate(corredor, from_attributes=True)
