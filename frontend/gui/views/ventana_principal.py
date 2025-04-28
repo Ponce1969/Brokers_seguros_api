@@ -16,7 +16,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from frontend.gui.viewmodels.corredor_viewmodel import CorredorViewModel
 from frontend.gui.viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
+from frontend.gui.viewmodels.cliente_viewmodel import ClienteViewModel
 from frontend.gui.views.corredor_view import VistaCorredores
+from frontend.gui.views.cliente_view import VistaClientes
 from frontend.gui.views.movimiento_vigencia_view import VistaMovimientosVigencia
 from frontend.gui.utils import IconHelper, apply_shadow, apply_button_shadow, apply_card_shadow
 
@@ -27,7 +29,7 @@ logger = logging.getLogger(__name__)
 class VentanaPrincipal(QMainWindow):
     """Ventana principal de la aplicación"""
 
-    def __init__(self, viewmodel_corredor: CorredorViewModel, rol_usuario: str, viewmodel_movimientos: MovimientoVigenciaViewModel = None):
+    def __init__(self, viewmodel_corredor: CorredorViewModel, rol_usuario: str, viewmodel_movimientos: MovimientoVigenciaViewModel = None, viewmodel_cliente: ClienteViewModel = None):
         super().__init__()
         self.viewmodel_corredor = viewmodel_corredor
         
@@ -37,6 +39,13 @@ class VentanaPrincipal(QMainWindow):
             self.viewmodel_movimientos = contenedor.resolver(MovimientoVigenciaViewModel)
         else:
             self.viewmodel_movimientos = viewmodel_movimientos
+            
+        # Obtener el ViewModel de clientes del contenedor si no se proporciona
+        if viewmodel_cliente is None:
+            from ..core.di_container import contenedor
+            self.viewmodel_cliente = contenedor.resolver(ClienteViewModel)
+        else:
+            self.viewmodel_cliente = viewmodel_cliente
             
         self.rol_usuario = rol_usuario
         self.setWindowTitle("Broker Seguros - Sistema de Gestión")
@@ -145,8 +154,10 @@ class VentanaPrincipal(QMainWindow):
         )
         self.stack_vistas.addWidget(self.vista_movimientos)
 
-        # Placeholder para vista de clientes
-        self.vista_clientes = QWidget()
+        # Vista de clientes
+        self.vista_clientes = VistaClientes(
+            self.viewmodel_cliente, es_admin=es_admin
+        )
         self.stack_vistas.addWidget(self.vista_clientes)
 
         # Agregar paneles al layout principal

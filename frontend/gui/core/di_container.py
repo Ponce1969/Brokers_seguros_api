@@ -11,6 +11,8 @@ from ..services.auth_service import AuthService
 from ..viewmodels.corredor_viewmodel import CorredorViewModel
 from ..viewmodels.movimiento_vigencia_viewmodel import MovimientoVigenciaViewModel
 from ..viewmodels.login_viewmodel import LoginViewModel
+from ..viewmodels.tipo_documento_viewmodel import TipoDocumentoViewModel
+from ..viewmodels.cliente_viewmodel import ClienteViewModel
 import logging
 
 # Configurar logging
@@ -100,6 +102,18 @@ class ContenedorDI:
                 instancia = MovimientoVigenciaViewModel(network_manager)
                 self._instancias[tipo_interfaz] = instancia
                 return instancia
+            elif tipo_interfaz == TipoDocumentoViewModel:
+                # Para TipoDocumentoViewModel, primero resolver NetworkManager
+                network_manager = self.resolver(NetworkManager)
+                instancia = TipoDocumentoViewModel(network_manager)
+                self._instancias[tipo_interfaz] = instancia
+                return instancia
+            elif tipo_interfaz == ClienteViewModel:
+                # Para ClienteViewModel, primero resolver NetworkManager
+                network_manager = self.resolver(NetworkManager)
+                instancia = ClienteViewModel(network_manager)
+                self._instancias[tipo_interfaz] = instancia
+                return instancia
             elif tipo_interfaz == LoginViewModel:
                 # Para LoginViewModel, primero resolver AuthService
                 auth_service = self.resolver(AuthService)
@@ -144,9 +158,14 @@ def crear_login_viewmodel():
     auth_service = contenedor.resolver(AuthService)
     return LoginViewModel(auth_service)
 
+def crear_cliente_viewmodel():
+    network_manager = contenedor.resolver(NetworkManager)
+    return ClienteViewModel(network_manager)
+
 # Registrar fábricas para servicios que necesiten crearse bajo demanda
 contenedor.registrar_fabrica(NetworkManager, crear_network_manager)
 contenedor.registrar_fabrica(AuthService, crear_auth_service)
 contenedor.registrar_fabrica(CorredorViewModel, crear_corredor_viewmodel)
 contenedor.registrar_fabrica(MovimientoVigenciaViewModel, crear_movimiento_viewmodel)
 contenedor.registrar_fabrica(LoginViewModel, crear_login_viewmodel)
+contenedor.registrar_fabrica(ClienteViewModel, crear_cliente_viewmodel)

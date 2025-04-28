@@ -108,6 +108,12 @@ class DialogoCorredor(QDialog):
         self.campos["email"].setStyleSheet(campo_style)
         form_layout.addRow("Email *:", self.campos["email"])
         
+        # Username (nombre de usuario para login)
+        self.campos["username"] = QLineEdit()
+        self.campos["username"].setPlaceholderText("Nombre de usuario para iniciar sesión")
+        self.campos["username"].setStyleSheet(campo_style)
+        form_layout.addRow("Username *:", self.campos["username"])
+        
         # Documento (campo obligatorio para el backend)
         self.campos["documento"] = QLineEdit()
         self.campos["documento"].setPlaceholderText("Número de documento")
@@ -226,9 +232,12 @@ class DialogoCorredor(QDialog):
                 self.campos["numero"].setValue(self.corredor.numero)
                 self.campos["nombre"].setText(self.corredor.nombre)
                 self.campos["email"].setText(self.corredor.email)
+                # Cargar username si existe (del usuario asociado)
+                if hasattr(self.corredor, 'username'):
+                    self.campos["username"].setText(self.corredor.username)
                 self.campos["telefono"].setText(self.corredor.telefono)
                 self.campos["direccion"].setText(self.corredor.direccion)
-                self.campos["documento"].setText(self.corredor.documento)
+                self.campos["documento"].setText(self.corredor.documento if hasattr(self.corredor, 'documento') else "")
                 self.campos["activo"].setChecked(self.corredor.activo)
 
     def validar_campos(self) -> tuple[bool, str]:
@@ -247,6 +256,8 @@ class DialogoCorredor(QDialog):
             return False, "El teléfono es requerido"
         if not self.campos["email"].text().strip():
             return False, "El email es requerido"
+        if not self.campos["username"].text().strip():
+            return False, "El nombre de usuario (username) es requerido"
         if not self.campos["direccion"].text().strip():
             return False, "La dirección es requerida"
         if not self.campos["documento"].text().strip():
@@ -336,6 +347,9 @@ class DialogoCorredor(QDialog):
                     # Actualizar todos los campos manualmente
                     self.campos["nombre"].setText(corredor_encontrado.nombre)
                     self.campos["email"].setText(corredor_encontrado.email)
+                    # Cargar username si existe en el ViewModel
+                    if hasattr(corredor_encontrado, 'username'):
+                        self.campos["username"].setText(corredor_encontrado.username)
                     self.campos["telefono"].setText(corredor_encontrado.telefono)
                     self.campos["direccion"].setText(corredor_encontrado.direccion)
                     self.campos["documento"].setText(corredor_encontrado.documento if hasattr(corredor_encontrado, 'documento') else "")
@@ -412,6 +426,7 @@ class DialogoCorredor(QDialog):
             "nombre": nombre,
             "telefono": self.campos["telefono"].text().strip(),
             "email": self.campos["email"].text().strip(),
+            "username": self.campos["username"].text().strip(),  # Campo para nombre de usuario (login)
             "direccion": self.campos["direccion"].text().strip(),
             "documento": self.campos["documento"].text().strip(),  # Campo requerido por el backend
             "activo": self.campos["activo"].isChecked(),
