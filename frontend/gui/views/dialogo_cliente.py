@@ -254,9 +254,10 @@ class DialogoCliente(QDialog):
         if fecha_nac == QDate.currentDate().toString("yyyy-MM-dd"):
             fecha_nac = None  # No enviar la fecha actual como fecha de nacimiento
             
-        # Recopilar datos del formulario
+        # Recopilar datos del formulario - asegurar que todos sean primitivos serializables
         datos = {
-            "id": self.cliente.id,  # Mantener el ID existente
+            # Convertir ID a string para evitar problemas de serialización
+            "id": str(self.cliente.id) if self.cliente.id else "",
             "nombres": self.nombres_input.text().strip(),
             "apellidos": self.apellidos_input.text().strip(),
             "tipo_documento_id": tipo_documento_id,
@@ -270,9 +271,25 @@ class DialogoCliente(QDialog):
             "observaciones": self.observaciones_input.toPlainText().strip()
         }
         
+        # Para un cliente nuevo, asegurar que no enviemos campos vacíos o nulos
+        if not datos["id"]:
+            datos.pop("id", None)  # Eliminar el campo id si está vacío
+            
+        # Para fecha de nacimiento nula, enviar una cadena vacía
+        if not datos["fecha_nacimiento"]:
+            datos["fecha_nacimiento"] = ""
+            
+        # Agregar campos requeridos por el backend
+        if "creado_por_id" not in datos:
+            datos["creado_por_id"] = 1  # Valor predeterminado
+            
+        if "modificado_por_id" not in datos:
+            datos["modificado_por_id"] = 1  # Valor predeterminado
+            
         # Agregar el ID del corredor si está disponible (para asociar el cliente al corredor)
         if hasattr(self, 'corredor_id') and self.corredor_id is not None:
-            datos['corredor_id'] = self.corredor_id
+            # Asegurar que sea un valor primitivo
+            datos['corredor_id'] = int(self.corredor_id)
             logger.info(f"Asociando cliente al corredor ID: {self.corredor_id}")
         
         return datos

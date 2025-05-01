@@ -9,6 +9,8 @@ from app.schemas.cliente import ClienteCreate, ClienteUpdate
 from .base import CRUDBase
 
 
+from app.db.models.cliente_corredor import ClienteCorredor
+
 class CRUDCliente(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
     async def get_by_mail(self, db: AsyncSession, *, mail: str) -> Optional[Cliente]:
         result = await db.execute(select(Cliente).where(Cliente.mail == mail))
@@ -57,5 +59,14 @@ class CRUDCliente(CRUDBase[Cliente, ClienteCreate, ClienteUpdate]):
 
         return await super().update(db, db_obj=db_obj, obj_in=update_data)
 
+
+    async def delete(self, db: AsyncSession, *, id) -> Cliente:
+        # Elimina relaciones dependientes en clientes_corredores
+        await db.execute(
+            ClienteCorredor.__table__.delete().where(ClienteCorredor.cliente_id == id)
+        )
+        await db.commit()
+        # Ahora elimina el cliente
+        return await super().delete(db, id=id)
 
 cliente_crud = CRUDCliente(Cliente)

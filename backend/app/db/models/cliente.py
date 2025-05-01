@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from ..base_class import Base
@@ -83,6 +84,8 @@ class Cliente(Base):
     corredores_asociados = relationship(
         "ClienteCorredor",
         back_populates="cliente_rel",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
         lazy="selectin",
     )
     movimientos_vigencias = relationship(
@@ -95,3 +98,8 @@ class Cliente(Base):
         back_populates="clientes",
         lazy="selectin",
     )
+
+    @property
+    def corredores_count(self):
+        """Cantidad real de corredores asociados a este cliente."""
+        return len(self.corredores_asociados or [])

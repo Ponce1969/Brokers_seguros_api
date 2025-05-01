@@ -3,6 +3,7 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.db.base_class import Base
 
@@ -59,9 +60,21 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await db.refresh(db_obj)
         return db_obj
 
-    async def delete(self, db: AsyncSession, *, id: int) -> ModelType:
+    from uuid import UUID
+    from typing import Union
+
+    from fastapi import HTTPException
+    from sqlalchemy.exc import IntegrityError
+
+    async def delete(self, db: AsyncSession, *, id: Union[int, UUID]) -> ModelType:
         obj = await db.execute(select(self.model).where(self.model.id == id))
         obj = obj.scalars().first()
-        await db.delete(obj)
-        await db.commit()
+        if not obj:
+            raise HTTPException(status_code=404, detail="Objeto no encontrado")
+        try:
+            await db.delete(obj)
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(status_code=409, detail="No se puede eliminar: existen relaciones dependientes o restricciones de integridad.")
         return obj

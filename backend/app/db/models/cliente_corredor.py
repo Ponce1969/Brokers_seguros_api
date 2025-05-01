@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import UUID, Column, Date, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Date, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 
 from ..base_class import Base
@@ -11,7 +12,7 @@ class ClienteCorredor(Base):
 
     __tablename__ = "clientes_corredores"
 
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id"), primary_key=True)
+    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="CASCADE"), primary_key=True)
     corredor_numero = Column(Integer, ForeignKey("corredores.numero"), primary_key=True)
     fecha_asignacion = Column(
         Date, default=datetime.utcnow
