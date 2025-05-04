@@ -5,6 +5,14 @@ from frontend.gui.utils.id_validator import is_uuid
 
 logger = logging.getLogger(__name__)
 
+# Constantes centralizadas para validación de clientes
+CAMPOS_OBLIGATORIOS = [
+    "nombres", "apellidos", "tipo_documento_id", "numero_documento",
+    "fecha_nacimiento", "direccion", "localidad", "telefonos", "movil", "mail"
+]
+CAMPOS_OPCIONALES = ["observaciones", "creado_por_id", "modificado_por_id"]
+CAMPOS_BACKEND = CAMPOS_OBLIGATORIOS + CAMPOS_OPCIONALES
+
 class ClienteNetworkHandler:
     def __init__(self, api):
         self.api = api
@@ -23,9 +31,18 @@ class ClienteNetworkHandler:
             raise ValueError(error_msg)
             
     def _validar_id_cliente(self, id: str):
-        """Valida que el ID del cliente sea un UUID válido"""
+        """
+        Valida que el ID del cliente sea un UUID válido.
+
+        NOTA PROFESIONAL:
+        -------------------------------------------
+        El backend SOLO acepta UUIDs (v4) como identificador de cliente.
+        No se permite ningún otro formato (ni numérico ni string arbitrario).
+        Si el backend cambia este contrato, actualizar aquí y en los tests.
+        -------------------------------------------
+        """
         if not is_uuid(id):
-            error_msg = f"ID de cliente no válido: {id}"
+            error_msg = f"ID de cliente no válido: {id} (el backend SOLO acepta UUIDs)"
             logger.warning(error_msg)
             raise ValueError(error_msg)
             
@@ -43,17 +60,15 @@ class ClienteNetworkHandler:
         # Lista de campos obligatorios según la documentación del backend
         # Nota: corredor_id no es obligatorio porque se puede determinar automáticamente
         # a partir del creado_por_id en el backend
-        campos_obligatorios = [
+        CAMPOS_OBLIGATORIOS = [
             'nombres', 'apellidos', 'tipo_documento_id', 'numero_documento',
             'fecha_nacimiento', 'direccion', 'localidad', 'telefonos', 'movil', 'mail'
         ]
-        
-        # Verificar que todos los campos obligatorios estén presentes y no estén vacíos
+        # Solo estos campos son obligatorios, el resto (como 'observaciones') es opcional
         campos_faltantes = []
-        for campo in campos_obligatorios:
-            if campo not in datos or datos[campo] is None or datos[campo] == "":
+        for campo in CAMPOS_OBLIGATORIOS:
+            if campo not in datos or datos[campo] is None or str(datos[campo]).strip() == "":
                 campos_faltantes.append(campo)
-        
         if campos_faltantes:
             error_msg = f"Faltan campos obligatorios para el cliente: {', '.join(campos_faltantes)}"
             logger.warning(error_msg)
@@ -79,81 +94,63 @@ class ClienteNetworkHandler:
         alineado 1:1 con el modelo ClienteCreate del backend.
         """
         logger.debug(f"Datos recibidos para crear cliente: {datos}")
-        # Lista de campos requeridos por el backend
-        campos_backend = [
-            "nombres", "apellidos", "tipo_documento_id", "numero_documento",
-            "fecha_nacimiento", "direccion", "localidad", "telefonos", "movil",
-            "mail", "observaciones", "creado_por_id", "modificado_por_id"
-        ]
-
         payload = {}
         errores = []
-        for campo in campos_backend:
+        for campo in CAMPOS_BACKEND:
             valor = datos.get(campo)
             if campo in ["tipo_documento_id", "creado_por_id", "modificado_por_id"]:
-                if valor is None or str(valor).strip() == "":
+                if campo in CAMPOS_OBLIGATORIOS and (valor is None or str(valor).strip() == ""):
                     errores.append(f"El campo '{campo}' es obligatorio y debe ser un entero válido.")
                     continue
-                try:
-                    payload[campo] = int(valor)
-                except (TypeError, ValueError):
-                    errores.append(f"El campo '{campo}' debe ser un entero válido.")
+                if valor is not None and str(valor).strip() != "":
+                    try:
+                        payload[campo] = int(valor)
+                    except (TypeError, ValueError):
+                        errores.append(f"El campo '{campo}' debe ser un entero válido.")
             elif campo == "fecha_nacimiento":
-                if not valor or not isinstance(valor, str) or not re.match(r"^\d{4}-\d{2}-\d{2}$", valor.strip()):
-                    errores.append("El campo 'fecha_nacimiento' es obligatorio y debe tener formato YYYY-MM-DD.")
-                else:
-                    payload[campo] = valor.strip()
+                if campo in CAMPOS_OBLIGATORIOS:
+                    if not valor or not isinstance(valor, str) or not valor.strip():
+                        errores.append("El campo 'fecha_nacimiento' es obligatorio y no puede estar vacío.")
+                    else:
+                        try:
+                            from datetime import datetime
+                            datetime.strptime(valor.strip(), "%Y-%m-%d")
+                            payload[campo] = valor.strip()
+                        except Exception as e:
+                            errores.append(f"El campo 'fecha_nacimiento' debe tener formato YYYY-MM-DD y ser una fecha válida. Error: {e}")
+                elif valor:
+                    try:
+                        from datetime import datetime
+                        datetime.strptime(str(valor).strip(), "%Y-%m-%d")
+                        payload[campo] = str(valor).strip()
+                    except Exception as e:
+                        errores.append(f"El campo 'fecha_nacimiento' debe tener formato YYYY-MM-DD y ser una fecha válida. Error: {e}")
             elif campo == "mail":
-                if not valor or not isinstance(valor, str) or not re.match(r"^[^@]+@[^@]+\.[^@]+$", valor.strip()):
-                    errores.append("El campo 'mail' es obligatorio y debe ser un email válido.")
-                else:
-                    payload[campo] = valor.strip()
-            else:
+                if campo in CAMPOS_OBLIGATORIOS:
+                    if not valor or not isinstance(valor, str) or not valor.strip():
+                        errores.append("El campo 'mail' es obligatorio y no puede estar vacío.")
+                    elif "@" not in valor or "." not in valor.split("@")[-1]:
+                        errores.append("El campo 'mail' debe ser un email válido (debe contener '@' y dominio).")
+                    else:
+                        payload[campo] = valor.strip()
+                elif valor:
+                    payload[campo] = str(valor).strip()
+            elif campo in CAMPOS_OBLIGATORIOS:
                 if valor is None or str(valor).strip() == "":
                     errores.append(f"El campo '{campo}' es obligatorio y no puede estar vacío.")
                 else:
                     payload[campo] = str(valor).strip()
+            else:  # Opcional
+                if valor is not None:
+                    payload[campo] = str(valor).strip()
 
         if errores:
-            logger.error(f"Errores en los datos del cliente: {'; '.join(errores)}")
-            raise ValueError("Errores en los datos del cliente: " + "; ".join(errores))
+            logger.error("Errores en los datos del cliente: " + '; '.join(errores))
+            raise ValueError('; '.join(errores))
 
         logger.info(f"Payload para crear cliente armado correctamente: {payload}")
         return payload
-        for campo in campos_enteros:
-            if campo in datos and datos[campo] is not None:
-                try:
-                    payload[campo] = int(datos[campo])
-                except (ValueError, TypeError):
-                    logger.warning(f"No se pudo convertir {campo} a entero: {datos[campo]}")
-                    # Mantener valor por defecto para campos enteros
-        
-        # Manejo especial para el corredor_id (campo clave para la asociación)
-        if 'corredor_id' in datos and datos['corredor_id'] is not None:
-            try:
-                # Convertir a entero para asegurar compatibilidad con el backend
-                payload['corredor_id'] = int(datos['corredor_id'])
-                logger.info(f"Cliente será asociado al corredor ID: {payload['corredor_id']}")
-            except (ValueError, TypeError):
-                logger.warning(f"No se pudo convertir corredor_id a entero: {datos['corredor_id']}")
-                # Si no podemos convertirlo, mantenemos None para que el backend lo determine
-                payload['corredor_id'] = None
-        
-        # Manejar fecha de nacimiento especialmente
-        if 'fecha_nacimiento' in datos:
-            if datos['fecha_nacimiento'] and str(datos['fecha_nacimiento']) != "":
-                payload['fecha_nacimiento'] = str(datos['fecha_nacimiento'])
-        
-        # Asegurar que el teléfono móvil también se use para teléfono fijo si este último no existe
-        if 'movil' in datos and datos['movil'] and (not payload.get('telefonos') or payload['telefonos'] == ""):
-            payload['telefonos'] = str(datos['movil'])
-            
-        # Y viceversa, usar teléfono fijo para móvil si este último no existe
-        if 'telefonos' in datos and datos['telefonos'] and (not payload.get('movil') or payload['movil'] == ""):
-            payload['movil'] = str(datos['telefonos'])
-        
-        logger.debug(f"Payload creado para operación {self._current_operation}")
-        return payload
+
 
     
     def crear_cliente(self, datos: dict):
@@ -190,30 +187,15 @@ class ClienteNetworkHandler:
                 
             # Enviar solicitud al servidor
             logger.info(f"Enviando solicitud para crear cliente: {payload}")
-            self.api.post("api/v1/clientes/", payload)
+            result = self.api.post("api/v1/clientes/", payload)
+            return result
         except ValueError as e:
             # Error de validación
             mensaje = f"Error de validación al crear cliente: {str(e)}"
             logger.error(mensaje)
             raise ValueError(mensaje)
         except Exception as e:
-            # Obtener detalles del error y proporcionar un mensaje más útil
-            error_str = str(e)
-            error_msg = "Error al crear cliente"
-            
-            if "500" in error_str or "Internal Server Error" in error_str:
-                # Problema en el backend - proporcionar más detalles basados en nuestro conocimiento
-                error_msg = (
-                    "Error en el servidor: El backend no pudo procesar la solicitud. "
-                    "Posibles causas incluyen: campos faltantes, formato incorrecto o "
-                    "problema con la asociación de corredor. Detalles: "
-                ) + error_str
-            elif "400" in error_str:
-                # Error de solicitud incorrecta
-                error_msg = "Error en la solicitud: Los datos enviados no cumplen con lo requerido por el backend. " + error_str
-            elif "401" in error_str or "403" in error_str:
-                # Error de autenticación o autorización
-                error_msg = "Error de autorización: No tiene permisos para crear clientes. " + error_str
+            raise ValueError(str(e))
                 
             logger.error(error_msg)
             raise ValueError(error_msg)

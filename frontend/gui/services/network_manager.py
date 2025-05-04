@@ -36,6 +36,8 @@ class NetworkManager(QObject):
         super().__init__(parent)
         self.base_url = base_url or os.getenv("API_URL", "http://localhost:8000")
         self.base_url = self.base_url.rstrip("/")
+        print(f"[DEBUG FRONTEND] NetworkManager base_url = {self.base_url}")
+        logger.info(f"[DEBUG FRONTEND] NetworkManager base_url = {self.base_url}")
         self.manager = QNetworkAccessManager()
         self.token: Optional[str] = None
 

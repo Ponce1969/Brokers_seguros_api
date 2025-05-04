@@ -251,8 +251,10 @@ class DialogoCliente(QDialog):
             raise ValueError(f"El tipo de documento seleccionado no es válido: {tipo_documento_id}")
             
         fecha_nac = self.fecha_nac_input.date().toString("yyyy-MM-dd")
-        if fecha_nac == QDate.currentDate().toString("yyyy-MM-dd"):
-            fecha_nac = None  # No enviar la fecha actual como fecha de nacimiento
+        # Validación UX: La fecha de nacimiento no puede ser la fecha actual ni estar vacía ni ser futura
+        if (not fecha_nac or fecha_nac == QDate.currentDate().toString("yyyy-MM-dd") or self.fecha_nac_input.date() > QDate.currentDate()):
+            fecha_nac = None  # Forzamos validación posterior y UX
+        
             
         # Recopilar datos del formulario - asegurar que todos sean primitivos serializables
         datos = {
@@ -306,13 +308,13 @@ class DialogoCliente(QDialog):
             return False, "Los nombres son requeridos"
         if not self.apellidos_input.text().strip():
             return False, "Los apellidos son requeridos"
-            
+
         # Validar tipo de documento
         if self.tipo_doc_combo.count() == 0:
             return False, "No hay tipos de documento disponibles. Contacte al administrador."
         if not self.tipo_doc_combo.currentData():
             return False, "Debe seleccionar un tipo de documento válido"
-            
+
         if not self.documento_input.text().strip():
             return False, "El número de documento es requerido"
         if not self.direccion_input.text().strip():
@@ -326,6 +328,13 @@ class DialogoCliente(QDialog):
         email = self.email_input.text().strip()
         if "@" not in email or "." not in email:
             return False, "El email no tiene un formato válido"
+
+        # Validar fecha de nacimiento
+        fecha_nac = self.fecha_nac_input.date().toString("yyyy-MM-dd")
+        if (not fecha_nac or fecha_nac == QDate.currentDate().toString("yyyy-MM-dd")):
+            return False, "Debe seleccionar una fecha de nacimiento válida (no puede ser la actual ni estar vacía)"
+        if self.fecha_nac_input.date() > QDate.currentDate():
+            return False, "La fecha de nacimiento no puede ser en el futuro"
 
         return True, ""
 
