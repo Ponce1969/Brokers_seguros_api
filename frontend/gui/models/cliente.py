@@ -50,6 +50,7 @@ class Cliente:
             Cliente: Nueva instancia de Cliente
         """
         try:
+            logger.debug(f"[from_dict] Diccionario recibido: {data}")
             # Crear una copia del diccionario para no modificar el original
             cliente_dict = data.copy()
 
@@ -93,11 +94,10 @@ class Cliente:
             # Filtrar claves no reconocidas para evitar error de argumentos inesperados
             valid_keys = set(cls.__dataclass_fields__.keys())
             filtered_dict = {k: v for k, v in cliente_dict.items() if k in valid_keys}
-            # Log para depuración de datos recibidos
-            logger.debug(f"Creando cliente desde datos: {filtered_dict}")
+            logger.debug(f"[from_dict] Diccionario después de filtrar claves: {filtered_dict}")
             return cls(**filtered_dict)
         except Exception as e:
-            logger.error(f"Error al crear Cliente desde diccionario: {e}")
+            logger.error(f"[from_dict] Error al crear Cliente desde diccionario: {e}. Diccionario original: {data}")
             # En caso de error, crear un cliente vacío
             return cls()
 
