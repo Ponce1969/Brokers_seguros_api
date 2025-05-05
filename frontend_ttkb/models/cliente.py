@@ -5,7 +5,7 @@ Este modelo representa a un cliente en el sistema, perfectamente alineado
 con la estructura que devuelve el backend.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import logging

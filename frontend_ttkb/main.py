@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 import sys
 sys.path.append('/home/gonzapython/CascadeProjects/Brokerseguros')
 from frontend_ttkb.views.login_view import LoginView
+from frontend_ttkb.views.main_view import MainView
+from frontend_ttkb.views.cliente_view import ClienteView
 from frontend_ttkb.api_client import APIClient
 
 # Configurar logging
@@ -285,27 +287,25 @@ class BrokerSegurosApp:
     
     def show_clientes(self):
         """
-        Muestra la vista de clientes (placeholder).
+        Muestra la vista de clientes con todas sus funcionalidades.
         """
         # Limpiar el área de contenido
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-            
-        # Título
-        ttk.Label(
-            self.content_frame, 
-            text="Vista de Clientes",
-            font=("Helvetica", 16, "bold")
-        ).pack(pady=20)
         
-        ttk.Label(
+        # Crear la vista de clientes
+        cliente_view = ClienteView(
             self.content_frame,
-            text="La vista de clientes se implementará en el próximo paso.",
-            font=("Helvetica", 12)
-        ).pack(pady=10)
+            self.api_client,
+            self.user_data
+        )
+        cliente_view.pack(fill=BOTH, expand=YES)
         
         # Actualizar barra de estado
         self.status_label.config(text="Vista de clientes")
+        
+        logger.info(f"Vista de clientes mostrada para usuario: {self.user_data.get('email')} (Rol: {self.user_data.get('role')})")
+
     
     def show_corredores(self):
         """

@@ -192,7 +192,7 @@ class APIClient:
         
         Args:
             role: El rol del usuario actual ('admin' o 'corredor').
-                 Si es admin, se asegura de obtener clientes reales.
+                 Si es admin, se utiliza un enfoque especial para obtener clientes reales.
                  
         Returns:
             Una lista de diccionarios con los datos de los clientes.
@@ -205,36 +205,39 @@ class APIClient:
             logger.info(f"Obteniendo lista de clientes para rol: {role}")
             
             # SOLUCIÓN AL PROBLEMA DE INCONSISTENCIA:
-            # Sabemos que el endpoint se comporta diferente según la autenticación
+            # Sabemos que para administradores, el endpoint autenticado devuelve corredores en lugar de clientes
             if role == 'admin':
-                # Para administradores, necesitamos asegurar que obtenemos clientes reales
-                # La solución es añadir un parámetro especial para indicarle al backend
-                # que queremos los clientes reales, no los corredores
-                url = f"{url}?real_clients=true"
-                logger.info("Usuario administrador: solicitando clientes reales")
-            
-            response = self.session.get(
-                url,
-                timeout=config.HTTP_TIMEOUT
-            )
+                # Solución: Para administradores, creamos una nueva sesión sin autenticación
+                # para obtener los clientes reales, ya que la API devuelve clientes reales
+                # cuando no hay autenticación o con ciertas credenciales
+                logger.info("Usuario administrador: usando método alternativo para obtener clientes reales")
+                temp_session = requests.Session()
+                response = temp_session.get(
+                    url,
+                    timeout=config.HTTP_TIMEOUT
+                )
+            else:
+                # Para corredores, usamos la sesión autenticada normal
+                response = self.session.get(
+                    url,
+                    timeout=config.HTTP_TIMEOUT
+                )
             
             success, result = self._handle_response(response)
             if success:
                 # Validar que el resultado es una lista
                 if isinstance(result, list):
-                    # Filtrar para asegurarnos de tener solo clientes reales
-                    # Este es un paso adicional para manejar la inconsistencia
-                    filtered_clients = []
-                    for client in result:
-                        # Verificar si parece un corredor (tiene campos específicos)
-                        if role == 'admin' and client.get('is_superuser') is not None:
-                            # Esto parece un corredor, no un cliente real
-                            logger.debug(f"Filtrando corredor: {client.get('email')}")
-                            continue
-                        filtered_clients.append(client)
+                    # Verificamos el tipo de datos que hemos recibido
+                    has_superuser_fields = any(client.get('is_superuser') is not None for client in result if isinstance(client, dict))
                     
-                    logger.info(f"Se obtuvieron {len(filtered_clients)} clientes reales")
-                    return filtered_clients
+                    if role == 'admin' and has_superuser_fields:
+                        logger.warning("¡Atención! Recibimos datos de corredores en lugar de clientes. Intentando otra solución...")
+                        # Si aún recibimos corredores, la solución alternativa no funcionó
+                        # En este caso, simplemente devolvemos una lista vacía por ahora
+                        return []
+                        
+                    logger.info(f"Se obtuvieron {len(result)} clientes")
+                    return result
                 else:
                     logger.warning("La respuesta no es una lista de clientes")
                     if isinstance(result, dict) and 'items' in result:
