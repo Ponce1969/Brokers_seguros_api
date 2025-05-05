@@ -235,8 +235,14 @@ class APIClient:
                         # Si aún recibimos corredores, la solución alternativa no funcionó
                         # En este caso, simplemente devolvemos una lista vacía por ahora
                         return []
-                        
+                    
+                    # Inspeccionar los datos recibidos - DIAGNÓSTICO
                     logger.info(f"Se obtuvieron {len(result)} clientes")
+                    if len(result) > 0:
+                        logger.info(f"CONTENIDO PRIMER CLIENTE: {result[0]}")
+                        for key, value in result[0].items():
+                            logger.info(f"CAMPO: {key} = {value} (tipo: {type(value).__name__})")
+                    
                     return result
                 else:
                     logger.warning("La respuesta no es una lista de clientes")
