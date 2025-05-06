@@ -65,99 +65,141 @@ class LoginView(ttk.Frame):
         Configura los elementos de la interfaz de usuario para el login.
         """
         # Contenedor principal con padding
-        self.pack(fill=BOTH, expand=YES, padx=20, pady=20)
+        self.pack(fill=BOTH, expand=YES, padx=40, pady=40)
         
-        # Título y logo (podría agregarse un logo más adelante)
-        title_frame = ttk.Frame(self)
-        title_frame.pack(fill=X, pady=(0, 20))
+        # Marco principal con borde y sombra
+        main_frame = ttk.Frame(self, bootstyle="default")
+        main_frame.pack(fill=BOTH, expand=YES, padx=20, pady=20)
+        
+        # Título y logo
+        title_frame = ttk.Frame(main_frame)
+        title_frame.pack(fill=X, pady=(20, 10))
+        
+        # Crear un círculo azul como logo provisional
+        logo_canvas = ttk.Canvas(title_frame, width=80, height=80, highlightthickness=0)
+        logo_canvas.pack(pady=(10, 5))
+        
+        # Dibujar un círculo azul con un "BS" dentro (Broker Seguros)
+        logo_canvas.create_oval(10, 10, 70, 70, fill="#3a7ebf", outline="#2a5c8f", width=2)
+        logo_canvas.create_text(40, 40, text="BS", fill="white", font=("Arial", 24, "bold"))
         
         title_label = ttk.Label(
             title_frame,
             text="Broker Seguros",
-            font=("Helvetica", 24, "bold")
+            font=("Helvetica", 24, "bold"),
+            bootstyle="info"
         )
-        title_label.pack(pady=10)
+        title_label.pack(pady=(5, 0))
         
         subtitle_label = ttk.Label(
             title_frame,
             text="Sistema de gestión de seguros",
-            font=("Helvetica", 12)
+            font=("Helvetica", 12),
+            bootstyle="secondary"
         )
-        subtitle_label.pack()
+        subtitle_label.pack(pady=(0, 20))
+        
+        # Separador decorativo
+        separator = ttk.Separator(main_frame)
+        separator.pack(fill=X, padx=40, pady=10)
         
         # Formulario de login
-        form_frame = ttk.Frame(self)
-        form_frame.pack(fill=BOTH, expand=YES, pady=20)
+        form_frame = ttk.Frame(main_frame)
+        form_frame.pack(fill=BOTH, expand=YES, padx=40, pady=(0, 20))
         
-        # Username
+        # Username con icono
         username_frame = ttk.Frame(form_frame)
-        username_frame.pack(fill=X, pady=5)
+        username_frame.pack(fill=X, pady=10)
         
+        # Etiqueta de usuario con icono
         username_label = ttk.Label(
             username_frame, 
-            text="Usuario:",
-            width=15,
-            anchor=E
+            text="Usuario",
+            bootstyle="info"
         )
-        username_label.pack(side=LEFT, padx=(0, 10))
+        username_label.pack(anchor=W, padx=(0, 10), pady=(0, 5))
         
+        # Campo de entrada con estilo mejorado
         username_entry = ttk.Entry(
             username_frame, 
             textvariable=self.username_var,
-            width=30
+            width=35,
+            bootstyle="info"
         )
-        username_entry.pack(side=LEFT, fill=X, expand=YES)
+        username_entry.pack(fill=X, expand=YES)
         
-        # Password
+        # Password con icono
         password_frame = ttk.Frame(form_frame)
-        password_frame.pack(fill=X, pady=5)
+        password_frame.pack(fill=X, pady=10)
         
+        # Etiqueta de contraseña con icono
         password_label = ttk.Label(
             password_frame, 
-            text="Contraseña:",
-            width=15,
-            anchor=E
+            text="Contraseña",
+            bootstyle="info"
         )
-        password_label.pack(side=LEFT, padx=(0, 10))
+        password_label.pack(anchor=W, padx=(0, 10), pady=(0, 5))
         
+        # Campo de contraseña con estilo mejorado
         password_entry = ttk.Entry(
             password_frame, 
             textvariable=self.password_var,
-            show="*",
-            width=30
+            show="●",  # Punto sólido en lugar de asterisco
+            width=35,
+            bootstyle="info"
         )
-        password_entry.pack(side=LEFT, fill=X, expand=YES)
+        password_entry.pack(fill=X, expand=YES)
         
-        # Remember me checkbox
-        remember_frame = ttk.Frame(form_frame)
-        remember_frame.pack(fill=X, pady=10)
+        # Opciones adicionales
+        options_frame = ttk.Frame(form_frame)
+        options_frame.pack(fill=X, pady=15)
         
+        # Checkbox de recordar en la izquierda
         remember_check = ttk.Checkbutton(
-            remember_frame,
+            options_frame,
             text="Recordar credenciales",
             variable=self.remember_var,
-            bootstyle="round-toggle"
+            bootstyle="round-toggle-info"
         )
-        remember_check.pack(padx=(75, 0), anchor=W)
+        remember_check.pack(side=LEFT)
+        
+        # Enlace de olvidé mi contraseña a la derecha
+        forgot_link = ttk.Label(
+            options_frame,
+            text="¿Olvidó su contraseña?",
+            cursor="hand2",
+            bootstyle="info"
+        )
+        forgot_link.pack(side=RIGHT)
+        forgot_link.bind("<Button-1>", lambda e: Messagebox.show_info(
+            "Esta funcionalidad estará disponible próximamente.",
+            "Recordatorio de contraseña"
+        ))
+        
+        # Separador decorativo antes de los botones
+        separator2 = ttk.Separator(form_frame)
+        separator2.pack(fill=X, pady=15)
         
         # Botones de acción
         button_frame = ttk.Frame(form_frame)
-        button_frame.pack(fill=X, pady=20)
+        button_frame.pack(fill=X, pady=10)
         
+        # Botón principal de iniciar sesión
         login_button = ttk.Button(
             button_frame,
-            text="Iniciar sesión",
+            text="INICIAR SESIÓN",
             command=self.login,
-            bootstyle=SUCCESS,
-            width=15
+            bootstyle="info",
+            width=20
         )
         login_button.pack(side=RIGHT, padx=5)
         
+        # Botón de cancelar
         cancel_button = ttk.Button(
             button_frame,
-            text="Cancelar",
+            text="CANCELAR",
             command=self.parent.destroy,
-            bootstyle=DANGER,
+            bootstyle="outline-danger",
             width=15
         )
         cancel_button.pack(side=RIGHT, padx=5)
