@@ -304,33 +304,59 @@ class BrokerSegurosApp:
         # Actualizar barra de estado
         self.status_label.config(text="Vista de clientes")
         
-        logger.info(f"Vista de clientes mostrada para usuario: {self.user_data.get('email')} (Rol: {self.user_data.get('role')})")
-
-    
     def show_corredores(self):
         """
-        Muestra la vista de corredores (placeholder).
+        Muestra la vista de corredores completa con todas sus funcionalidades.
         """
+        # Verificar que el usuario tenga permisos de administrador
+        if self.user_data.get('role') != 'admin':
+            logger.warning("Intento de acceso a vista de corredores por un usuario no administrador")
+            Messagebox.show_warning(
+                "No tienes permisos para acceder a la gestión de corredores.",
+                "Acceso restringido"
+            )
+            return
+        
+        logger.info("Cargando vista de corredores...")
+            
         # Limpiar el área de contenido
         for widget in self.content_frame.winfo_children():
             widget.destroy()
             
-        # Título
-        ttk.Label(
-            self.content_frame, 
-            text="Vista de Corredores",
-            font=("Helvetica", 16, "bold")
-        ).pack(pady=20)
-        
-        ttk.Label(
-            self.content_frame,
-            text="La vista de corredores se implementará en el próximo paso.",
-            font=("Helvetica", 12)
-        ).pack(pady=10)
-        
-        # Actualizar barra de estado
+        try:
+            # Importar la vista de corredores
+            from frontend_ttkb.views.corredores_view import CorredoresView
+            
+            # Crear la vista de corredores
+            corredor_view = CorredoresView(
+                self.content_frame,
+                self.api_client
+            )
+            
+            # Actualizar barra de estado
+            self.status_label.config(text="Vista de corredores cargada exitosamente")
+            logger.info(f"Vista de corredores mostrada para usuario: {self.user_data.get('email')} (Rol: {self.user_data.get('role')})")
+        except Exception as e:
+            # Manejar cualquier error durante la carga
+            logger.error(f"Error al cargar vista de corredores: {str(e)}")
+            
+            # Mostrar mensaje de error
+            Messagebox.show_error(
+                f"No se pudo cargar la vista de corredores: {str(e)}",
+                "Error"
+            )
+            
+            # Mostrar vista placeholder en caso de error
+            ttk.Label(
+                self.content_frame, 
+                text="Error al cargar la vista de Corredores",
+                font=("Helvetica", 16, "bold")
+            ).pack(pady=20)
+            
+            # Actualizar barra de estado
+            self.status_label.config(text="Error al cargar vista de corredores")
         self.status_label.config(text="Vista de corredores")
-    
+
     def show_movimientos(self):
         """
         Muestra la vista de movimientos (placeholder).

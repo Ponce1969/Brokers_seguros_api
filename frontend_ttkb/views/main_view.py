@@ -239,21 +239,33 @@ class MainView(ttk.Frame):
         """
         Muestra la vista de corredores (solo para administradores).
         """
+        logger.info("Intentando mostrar vista de corredores...")
+        
         if not self.is_admin:
             logger.warning("Intento de acceso a vista de corredores por un usuario no administrador")
             return
         
+        logger.info("Usuario con permisos suficientes para ver corredores, procediendo...")
         self._clear_content()
         
-        # Placeholder para la vista de corredores
-        label = ttk.Label(
-            self.content_frame, 
-            text="Vista de Corredores (En desarrollo)", 
-            font=("Helvetica", 14, "bold")
-        )
-        label.pack(pady=50)
-        
-        # TODO: Implementar la vista real de corredores
+        try:
+            # Importar la vista de corredores
+            logger.info("Importando módulo de vista de corredores...")
+            from frontend_ttkb.views.corredores_view import CorredoresView
+            
+            # Crear la vista de corredores
+            logger.info("Creando instancia de CorredoresView...")
+            self.current_view = CorredoresView(self.content_frame, self.api_client)
+            
+            logger.info("Vista de corredores cargada exitosamente")
+        except Exception as e:
+            logger.error(f"Error al cargar vista de corredores: {str(e)}")
+            # Mostrar mensaje de error en la interfaz
+            from ttkbootstrap.dialogs import Messagebox
+            Messagebox.show_error(
+                f"Error al cargar vista de corredores: {str(e)}",
+                "Error"
+            )
     
     def _show_movimientos_view(self):
         """
